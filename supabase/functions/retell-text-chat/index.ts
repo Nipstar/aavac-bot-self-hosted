@@ -5,10 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Store conversation history in memory (per request context)
-// For production, you'd want to store this in a database
-const conversations = new Map<string, Array<{ role: string; content: string }>>();
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,40 +24,74 @@ serve(async (req) => {
       throw new Error('RETELL_TEXT_AGENT_ID is not configured');
     }
 
-    const { message, conversation_id } = await req.json();
+    const { message, chat_id } = await req.json();
 
     if (!message) {
       throw new Error('Message is required');
     }
 
-    console.log('Sending text message to agent:', RETELL_TEXT_AGENT_ID);
+    let currentChatId = chat_id;
 
-    // Use the Chat Completion API for chat agents
-    const response = await fetch("https://api.retellai.com/v2/create-chat-completion", {
+    // If no chat_id, create a new chat session first
+    if (!currentChatId) {
+      console.log('Creating new chat session with agent:', RETELL_TEXT_AGENT_ID);
+      
+      const createChatResponse = await fetch("https://api.retellai.com/v2/create-chat", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RETELL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agent_id: RETELL_TEXT_AGENT_ID,
+        }),
+      });
+
+      if (!createChatResponse.ok) {
+        const errorText = await createChatResponse.text();
+        console.error('Retell create-chat error:', createChatResponse.status, errorText);
+        throw new Error(`Failed to create chat session: ${createChatResponse.status}`);
+      }
+
+      const chatData = await createChatResponse.json();
+      currentChatId = chatData.chat_id;
+      console.log('Chat session created:', currentChatId);
+    }
+
+    // Now send the message using the chat_id
+    console.log('Sending message to chat:', currentChatId);
+    
+    const completionResponse = await fetch("https://api.retellai.com/v2/create-chat-completion", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RETELL_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        agent_id: RETELL_TEXT_AGENT_ID,
-        user_message: message,
-        conversation_id: conversation_id || undefined,
+        chat_id: currentChatId,
+        content: message,
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Retell API error:', response.status, errorText);
-      throw new Error(`Failed to send message: ${response.status} - ${errorText}`);
+    if (!completionResponse.ok) {
+      const errorText = await completionResponse.text();
+      console.error('Retell completion error:', completionResponse.status, errorText);
+      throw new Error(`Failed to send message: ${completionResponse.status}`);
     }
 
-    const data = await response.json();
-    console.log('Chat completion response received:', data);
+    const completionData = await completionResponse.json();
+    console.log('Chat completion response received');
+
+    // Extract the latest agent message
+    const messages = completionData.messages || [];
+    const agentMessages = messages.filter((m: { role: string }) => m.role === 'agent');
+    const latestAgentMessage = agentMessages.length > 0 
+      ? agentMessages[agentMessages.length - 1].content 
+      : '';
 
     return new Response(JSON.stringify({ 
-      response: data.agent_message || data.response || data.content,
-      conversation_id: data.conversation_id,
+      response: latestAgentMessage,
+      chat_id: currentChatId,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -24,7 +24,7 @@ const VoiceWidget = ({ className }: VoiceWidgetProps) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
   const retellClient = useRef<RetellWebClient | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -102,9 +102,9 @@ const VoiceWidget = ({ className }: VoiceWidgetProps) => {
     return data;
   };
 
-  const sendTextMessage = async (message: string): Promise<{ response: string; conversation_id?: string }> => {
+  const sendTextMessage = async (message: string): Promise<{ response: string; chat_id?: string }> => {
     const { data, error } = await supabase.functions.invoke("retell-text-chat", {
-      body: { message, conversation_id: conversationId },
+      body: { message, chat_id: chatId },
     });
 
     if (error) {
@@ -157,9 +157,9 @@ const VoiceWidget = ({ className }: VoiceWidgetProps) => {
     try {
       const data = await sendTextMessage(userMessage);
       
-      // Update conversation ID for continuity
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
+      // Update chat ID for continuity
+      if (data.chat_id) {
+        setChatId(data.chat_id);
       }
 
       // Add agent response
@@ -176,7 +176,7 @@ const VoiceWidget = ({ className }: VoiceWidgetProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [inputText, isSending, toast, conversationId]);
+  }, [inputText, isSending, toast, chatId]);
 
   const getStatusText = () => {
     switch (callState) {
