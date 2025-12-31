@@ -1,4 +1,4 @@
-import VoiceWidget from "@/components/VoiceWidget";
+import FloatingVoiceWidget from "@/components/FloatingVoiceWidget";
 import { Sparkles } from "lucide-react";
 
 const Index = () => {
@@ -26,18 +26,41 @@ const Index = () => {
             <span className="text-gradient">Chat</span>
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Switch between voice and chat to interact with the AI assistant
+            Click the chat button in the bottom-right corner to interact with the AI assistant
           </p>
         </div>
 
-        {/* Voice Widget */}
-        <VoiceWidget className="animate-scale-in w-full" />
+        {/* Info Cards */}
+        <div className="grid gap-4 w-full">
+          <div className="glass rounded-xl p-4 text-left">
+            <h3 className="font-semibold text-foreground mb-2">💬 Chat Mode</h3>
+            <p className="text-sm text-muted-foreground">
+              Type your questions and get instant AI responses
+            </p>
+          </div>
+          <div className="glass rounded-xl p-4 text-left">
+            <h3 className="font-semibold text-foreground mb-2">🎤 Voice Mode</h3>
+            <p className="text-sm text-muted-foreground">
+              Have a natural voice conversation with the AI
+            </p>
+          </div>
+        </div>
 
         {/* Footer note */}
         <p className="text-xs text-muted-foreground/60">
           Powered by Retell AI
         </p>
       </div>
+
+      {/* Floating Widget */}
+      <FloatingVoiceWidget 
+        config={{
+          title: "AI Assistant",
+          greeting: "Hi there! 👋 How can I help you today?",
+          enableVoice: true,
+          enableChat: true,
+        }}
+      />
     </div>
   );
 };
