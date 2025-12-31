@@ -11,55 +11,27 @@ const Index = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center gap-12 max-w-md text-center">
+      <div className="relative z-10 flex flex-col items-center gap-10 w-full max-w-lg text-center">
         {/* Header */}
         <div className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             <span className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-              AI Voice Assistant
+              AI Assistant
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
             <span className="text-gradient">Voice</span>{" "}
-            <span className="text-foreground">Chat</span>
+            <span className="text-foreground">&</span>{" "}
+            <span className="text-gradient">Chat</span>
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Start a conversation with our AI assistant. Just click the button below
-            and begin speaking naturally.
+            Switch between voice and chat to interact with the AI assistant
           </p>
         </div>
 
         {/* Voice Widget */}
-        <VoiceWidget className="animate-scale-in" />
-
-        {/* Instructions */}
-        <div
-          className="glass rounded-2xl p-6 space-y-4 animate-fade-in"
-          style={{ animationDelay: "0.3s" }}
-        >
-          <h2 className="font-semibold text-foreground">How it works</h2>
-          <ul className="space-y-3 text-sm text-muted-foreground text-left">
-            <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                1
-              </span>
-              <span>Click the call button to start a conversation</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                2
-              </span>
-              <span>Allow microphone access when prompted</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                3
-              </span>
-              <span>Speak naturally and wait for the AI to respond</span>
-            </li>
-          </ul>
-        </div>
+        <VoiceWidget className="animate-scale-in w-full" />
 
         {/* Footer note */}
         <p className="text-xs text-muted-foreground/60">
