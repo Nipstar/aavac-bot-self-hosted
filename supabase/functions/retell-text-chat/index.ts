@@ -36,7 +36,7 @@ serve(async (req) => {
     if (!currentChatId) {
       console.log('Creating new chat session with agent:', RETELL_TEXT_AGENT_ID);
       
-      const createChatResponse = await fetch("https://api.retellai.com/v2/create-chat", {
+      const createChatResponse = await fetch("https://api.retellai.com/create-chat", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${RETELL_API_KEY}`,
@@ -61,7 +61,7 @@ serve(async (req) => {
     // Now send the message using the chat_id
     console.log('Sending message to chat:', currentChatId);
     
-    const completionResponse = await fetch("https://api.retellai.com/v2/create-chat-completion", {
+    const completionResponse = await fetch("https://api.retellai.com/create-chat-completion", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RETELL_API_KEY}`,
