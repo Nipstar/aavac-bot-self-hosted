@@ -1,5 +1,6 @@
 import FloatingVoiceWidget from "@/components/FloatingVoiceWidget";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Code } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   return (
@@ -45,6 +46,15 @@ const Index = () => {
             </p>
           </div>
         </div>
+
+        {/* Embed Link */}
+        <Link 
+          to="/embed"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
+        >
+          <Code className="w-4 h-4" />
+          Get Embed Code
+        </Link>
 
         {/* Footer note */}
         <p className="text-xs text-muted-foreground/60">
