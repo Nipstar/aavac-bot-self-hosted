@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Copy, Check, Code, Globe, Puzzle } from "lucide-react";
+import { Copy, Check, Code, Globe, Puzzle, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const EmbedPage = () => {
   const [apiKey, setApiKey] = useState<string>("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     // Fetch the demo widget config
@@ -50,6 +51,33 @@ add_action('wp_enqueue_scripts', 'retell_widget_enqueue_script');
     navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const downloadWordPressPlugin = async () => {
+    if (!apiKey) return;
+    
+    setIsDownloading(true);
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/wordpress-plugin?api_key=${apiKey}`
+      );
+      
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'retell-widget.zip';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to download plugin:', error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -118,13 +146,22 @@ add_action('wp_enqueue_scripts', 'retell_widget_enqueue_script');
 
         {/* WordPress Plugin */}
         <div className="glass rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Puzzle className="w-5 h-5 text-primary" />
-            WordPress Plugin
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Puzzle className="w-5 h-5 text-primary" />
+              WordPress Plugin
+            </h2>
+            <button
+              onClick={downloadWordPressPlugin}
+              disabled={!apiKey || isDownloading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              {isDownloading ? "Downloading..." : "Download Plugin"}
+            </button>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Create a file called <code className="bg-secondary px-1.5 py-0.5 rounded">retell-widget.php</code>{" "}
-            in your <code className="bg-secondary px-1.5 py-0.5 rounded">wp-content/plugins/</code> folder with this code:
+            Download the ready-to-install WordPress plugin zip file, or manually create the plugin with the code below.
           </p>
           <div className="relative">
             <pre className="bg-secondary/50 rounded-lg p-4 text-sm font-mono text-foreground overflow-x-auto max-h-64">
@@ -142,12 +179,12 @@ add_action('wp_enqueue_scripts', 'retell_widget_enqueue_script');
             </button>
           </div>
           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm">
-            <strong className="text-primary">Instructions:</strong>
+            <strong className="text-primary">Installation:</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1 text-muted-foreground">
-              <li>Create the file with the code above</li>
-              <li>Go to WordPress Admin → Plugins</li>
-              <li>Find "Retell AI Chat Widget" and click Activate</li>
-              <li>The widget will appear on all pages</li>
+              <li>Download the plugin zip file above</li>
+              <li>Go to WordPress Admin → Plugins → Add New → Upload Plugin</li>
+              <li>Choose the zip file and click "Install Now"</li>
+              <li>Click "Activate Plugin" - the widget will appear on all pages</li>
             </ol>
           </div>
         </div>

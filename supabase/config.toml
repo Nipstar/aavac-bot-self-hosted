@@ -28,3 +28,6 @@ verify_jwt = false
 
 [functions.widget-embed]
 verify_jwt = false
+
+[functions.wordpress-plugin]
+verify_jwt = false
