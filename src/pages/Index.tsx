@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FloatingVoiceWidget from "@/components/FloatingVoiceWidget";
 import { Sparkles, Code, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface DemoSettings {
   title: string | null;
@@ -42,14 +43,25 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background gradient effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-glow-secondary/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Navigation */}
+      <nav className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center justify-between">
+        <Link to="/" className="text-xl font-bold text-gradient">
+          AAVAC Bot
+        </Link>
+        <Link to="/auth">
+          <Button variant="outline" size="sm">
+            Sign In
+          </Button>
+        </Link>
+      </nav>
 
-      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Background gradient effects */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-glow-secondary/5 rounded-full blur-3xl" />
+        </div>
       <div className="relative z-10 flex flex-col items-center gap-10 w-full max-w-lg text-center">
         {/* Header */}
         <div className="space-y-4 animate-fade-in">
@@ -110,6 +122,7 @@ const Index = () => {
           primaryColor: settings?.primary_color || undefined,
         }}
       />
+      </div>
     </div>
   );
 };
