@@ -26,6 +26,54 @@ serve(async (req) => {
   var configLoaded = false;
   var widgetConfig = null;
   
+  // Diagnostics state
+  var diagnostics = {
+    eventemitter3: { status: "loading", error: null },
+    livekit: { status: "loading", error: null },
+    retellSdk: { status: "loading", error: null },
+    config: { status: "loading", error: null },
+    lastError: null,
+    logs: []
+  };
+  
+  function logDiag(msg) {
+    var ts = new Date().toISOString().substr(11, 8);
+    diagnostics.logs.push("[" + ts + "] " + msg);
+    if (diagnostics.logs.length > 20) diagnostics.logs.shift();
+    updateDiagnosticsPanel();
+  }
+  
+  function updateDiagnosticsPanel() {
+    var panel = document.getElementById("retell-diag-panel");
+    if (!panel) return;
+    
+    var statusIcon = function(s) {
+      if (s === "loaded") return '<span style="color:#22c55e">✓</span>';
+      if (s === "error") return '<span style="color:#ef4444">✗</span>';
+      return '<span style="color:#eab308">⋯</span>';
+    };
+    
+    panel.innerHTML = 
+      '<div style="font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">' +
+        '<span>Widget Diagnostics</span>' +
+        '<button id="retell-diag-close" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px;">×</button>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;margin-bottom:8px;">' +
+        '<span>EventEmitter3:</span><span>' + statusIcon(diagnostics.eventemitter3.status) + ' ' + diagnostics.eventemitter3.status + (diagnostics.eventemitter3.error ? ' - ' + diagnostics.eventemitter3.error : '') + '</span>' +
+        '<span>LiveKit:</span><span>' + statusIcon(diagnostics.livekit.status) + ' ' + diagnostics.livekit.status + (diagnostics.livekit.error ? ' - ' + diagnostics.livekit.error : '') + '</span>' +
+        '<span>Retell SDK:</span><span>' + statusIcon(diagnostics.retellSdk.status) + ' ' + diagnostics.retellSdk.status + (diagnostics.retellSdk.error ? ' - ' + diagnostics.retellSdk.error : '') + '</span>' +
+        '<span>Config:</span><span>' + statusIcon(diagnostics.config.status) + ' ' + diagnostics.config.status + (diagnostics.config.error ? ' - ' + diagnostics.config.error : '') + '</span>' +
+      '</div>' +
+      (diagnostics.lastError ? '<div style="background:#7f1d1d;padding:6px 8px;border-radius:4px;font-size:11px;margin-bottom:8px;word-break:break-all;">Last Error: ' + diagnostics.lastError + '</div>' : '') +
+      '<div style="font-size:10px;color:rgba(255,255,255,0.5);max-height:100px;overflow-y:auto;font-family:monospace;">' +
+        diagnostics.logs.map(function(l) { return '<div>' + l + '</div>'; }).join('') +
+      '</div>';
+    
+    document.getElementById("retell-diag-close").onclick = function() {
+      panel.style.display = "none";
+    };
+  }
+  
   function tryInitWidget() {
     if (sdkLoaded && configLoaded && widgetConfig) {
       initWidget(widgetConfig);
@@ -46,6 +94,8 @@ serve(async (req) => {
     tryInitWidget();
   }
 
+  logDiag("Loading EventEmitter3...");
+  
   // Load Retell SDK + required dependencies (UMD build expects globals)
   loadScript(
     "https://cdn.jsdelivr.net/npm/eventemitter3@5.0.1/dist/eventemitter3.umd.min.js",
@@ -54,7 +104,10 @@ serve(async (req) => {
       if (!window.eventemitter3) {
         window.eventemitter3 = window.EventEmitter3 || window.eventemitter3;
       }
+      diagnostics.eventemitter3.status = "loaded";
+      logDiag("EventEmitter3 loaded");
 
+      logDiag("Loading LiveKit...");
       loadScript(
         "https://cdn.jsdelivr.net/npm/livekit-client@2.15.6/dist/livekit-client.umd.min.js",
         function() {
@@ -62,48 +115,81 @@ serve(async (req) => {
           if (!window.livekitClient) {
             window.livekitClient = window.LivekitClient || window.livekitClient;
           }
+          diagnostics.livekit.status = "loaded";
+          logDiag("LiveKit loaded");
 
+          logDiag("Loading Retell SDK...");
           loadScript(
             "https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.umd.js",
             function() {
               if (window.retellClientJsSdk && window.retellClientJsSdk.RetellWebClient) {
+                diagnostics.retellSdk.status = "loaded";
+                logDiag("Retell SDK loaded successfully");
                 console.log("RetellWidget: SDK loaded");
               } else {
+                diagnostics.retellSdk.status = "error";
+                diagnostics.retellSdk.error = "globals missing";
+                diagnostics.lastError = "Retell SDK loaded but globals missing";
+                logDiag("ERROR: SDK globals missing");
                 console.error("RetellWidget: SDK loaded but globals missing");
               }
               markSdkReady();
             },
             function() {
+              diagnostics.retellSdk.status = "error";
+              diagnostics.retellSdk.error = "failed to load";
+              diagnostics.lastError = "Failed to load Retell SDK";
+              logDiag("ERROR: Failed to load Retell SDK");
               console.error("RetellWidget: Failed to load SDK");
               markSdkReady();
             }
           );
         },
         function() {
+          diagnostics.livekit.status = "error";
+          diagnostics.livekit.error = "failed to load";
+          diagnostics.lastError = "Failed to load LiveKit";
+          logDiag("ERROR: Failed to load LiveKit");
           console.error("RetellWidget: Failed to load LiveKit dependency");
           markSdkReady();
         }
       );
     },
     function() {
+      diagnostics.eventemitter3.status = "error";
+      diagnostics.eventemitter3.error = "failed to load";
+      diagnostics.lastError = "Failed to load EventEmitter3";
+      logDiag("ERROR: Failed to load EventEmitter3");
       console.error("RetellWidget: Failed to load EventEmitter dependency");
       markSdkReady();
     }
   );
+  
+  logDiag("Fetching widget config...");
   
   // Fetch widget config
   fetch(BASE_URL + "/widget-config?api_key=" + API_KEY)
     .then(function(res) { return res.json(); })
     .then(function(config) {
       if (config.error) {
+        diagnostics.config.status = "error";
+        diagnostics.config.error = config.error;
+        diagnostics.lastError = config.error;
+        logDiag("ERROR: " + config.error);
         console.error("RetellWidget: " + config.error);
         return;
       }
+      diagnostics.config.status = "loaded";
+      logDiag("Config loaded: " + (config.title || "Widget"));
       widgetConfig = config;
       configLoaded = true;
       tryInitWidget();
     })
     .catch(function(err) {
+      diagnostics.config.status = "error";
+      diagnostics.config.error = err.message || "network error";
+      diagnostics.lastError = "Failed to load config: " + (err.message || "network error");
+      logDiag("ERROR: Failed to load config");
       console.error("RetellWidget: Failed to load config", err);
     });
 
@@ -170,8 +256,30 @@ serve(async (req) => {
       @keyframes retell-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes retell-bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
       @keyframes retell-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(20, 184, 166, 0); } }
+      #retell-diag-panel { position: fixed; bottom: 90px; right: 90px; width: 320px; background: #1e1e2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; z-index: 9999999; box-shadow: 0 10px 40px rgba(0,0,0,0.4); display: none; }
+      #retell-diag-btn { position: fixed; bottom: 90px; right: 24px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer; z-index: 9999998; display: flex; align-items: center; justify-content: center; }
+      #retell-diag-btn:hover { background: rgba(255,255,255,0.2); color: white; }
     \`;
     document.head.appendChild(style);
+    
+    // Create diagnostics button and panel
+    var diagBtn = document.createElement("button");
+    diagBtn.id = "retell-diag-btn";
+    diagBtn.innerHTML = "⚙";
+    diagBtn.title = "Widget Diagnostics";
+    diagBtn.onclick = function() {
+      var panel = document.getElementById("retell-diag-panel");
+      if (panel) {
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+        updateDiagnosticsPanel();
+      }
+    };
+    document.body.appendChild(diagBtn);
+    
+    var diagPanel = document.createElement("div");
+    diagPanel.id = "retell-diag-panel";
+    document.body.appendChild(diagPanel);
+    updateDiagnosticsPanel();
 
     // Create container
     var container = document.createElement("div");
@@ -405,14 +513,19 @@ serve(async (req) => {
     async function startVoiceCall() {
       if (callState !== "idle") return;
       
+      logDiag("Starting voice call...");
+      
       try {
         // Check for microphone permission
+        logDiag("Requesting microphone permission...");
         await navigator.mediaDevices.getUserMedia({ audio: true });
+        logDiag("Microphone access granted");
         
         callState = "connecting";
         updateVoiceUI();
         
         // Create call via edge function
+        logDiag("Creating call session...");
         var response = await fetch(BASE_URL + "/retell-create-call", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -429,11 +542,14 @@ serve(async (req) => {
           throw new Error("No access token received");
         }
         
+        logDiag("Call session created, connecting...");
+        
         // Initialize Retell client
         if (window.retellClientJsSdk && window.retellClientJsSdk.RetellWebClient) {
           retellClient = new window.retellClientJsSdk.RetellWebClient();
           
           retellClient.on("call_started", function() {
+            logDiag("Call connected");
             console.log("RetellWidget: Call started");
             callState = "active";
             updateVoiceUI();
@@ -441,6 +557,7 @@ serve(async (req) => {
           });
           
           retellClient.on("call_ended", function() {
+            logDiag("Call ended");
             console.log("RetellWidget: Call ended");
             callState = "idle";
             isAgentSpeaking = false;
@@ -458,6 +575,9 @@ serve(async (req) => {
           });
           
           retellClient.on("error", function(err) {
+            var errMsg = typeof err === "string" ? err : (err && err.message ? err.message : "Unknown error");
+            diagnostics.lastError = "Call error: " + errMsg;
+            logDiag("ERROR: " + errMsg);
             console.error("RetellWidget: Error", err);
             callState = "idle";
             isAgentSpeaking = false;
@@ -475,10 +595,13 @@ serve(async (req) => {
         }
         
       } catch (err) {
+        var errMsg = err.message || "Failed to start call";
+        diagnostics.lastError = errMsg;
+        logDiag("ERROR: " + errMsg);
         console.error("RetellWidget: Failed to start call", err);
         callState = "idle";
         updateVoiceUI();
-        callStatus.textContent = err.message || "Failed to start call";
+        callStatus.textContent = errMsg;
       }
     }
     
