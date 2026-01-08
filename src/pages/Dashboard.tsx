@@ -30,6 +30,7 @@ import {
   User,
   LogOut,
   Settings,
+  Shield,
 } from "lucide-react";
 
 interface Widget {
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newWidgetName, setNewWidgetName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -63,8 +65,20 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchWidgets();
+      checkAdminRole();
     }
   }, [user]);
+
+  const checkAdminRole = async () => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user!.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    
+    setIsAdmin(!!data);
+  };
 
   const fetchWidgets = async () => {
     const { data, error } = await supabase
@@ -171,6 +185,14 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-demo">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin Settings
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link to="/settings">
                     <Settings className="w-4 h-4 mr-2" />
