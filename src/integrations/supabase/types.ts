@@ -238,6 +238,7 @@ export type Database = {
         Row: {
           allowed_domains: string[] | null
           api_key: string
+          attribution_link: string | null
           chat_agent_id: string | null
           created_at: string
           enable_chat: boolean | null
@@ -256,6 +257,7 @@ export type Database = {
         Insert: {
           allowed_domains?: string[] | null
           api_key: string
+          attribution_link?: string | null
           chat_agent_id?: string | null
           created_at?: string
           enable_chat?: boolean | null
@@ -274,6 +276,7 @@ export type Database = {
         Update: {
           allowed_domains?: string[] | null
           api_key?: string
+          attribution_link?: string | null
           chat_agent_id?: string | null
           created_at?: string
           enable_chat?: boolean | null

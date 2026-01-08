@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Palette, Building2, Loader2, Save, Upload } from "lucide-react";
+import { Palette, Loader2, Save } from "lucide-react";
 
 interface Team {
   id: string;
@@ -19,7 +19,7 @@ interface Team {
 }
 
 export default function WhitelabelSettings() {
-  const { user, subscription } = useAuth();
+  const { user } = useAuth();
   const [team, setTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,8 +29,6 @@ export default function WhitelabelSettings() {
   const [logoUrl, setLogoUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#14b8a6");
   const [secondaryColor, setSecondaryColor] = useState("#0f172a");
-
-  const isPro = subscription?.tier === "pro" || subscription?.tier === "admin";
 
   useEffect(() => {
     if (user) {
@@ -101,29 +99,6 @@ export default function WhitelabelSettings() {
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!isPro) {
-    return (
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5" />
-            Whitelabel & Branding
-          </CardTitle>
-          <CardDescription>
-            Upgrade to Pro for custom branding
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Custom branding is available on Pro plans.</p>
-            <p className="text-sm mt-2">Add your logo, company name, and brand colors.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
   }
 
   if (loading) {

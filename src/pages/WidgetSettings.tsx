@@ -31,6 +31,7 @@ interface WidgetConfig {
   chat_agent_id: string | null;
   allowed_domains: string[] | null;
   retell_api_key: string | null;
+  attribution_link: string | null;
 }
 
 export default function WidgetSettings() {
@@ -53,6 +54,7 @@ export default function WidgetSettings() {
   const [chatAgentId, setChatAgentId] = useState("");
   const [retellApiKey, setRetellApiKey] = useState("");
   const [allowedDomains, setAllowedDomains] = useState("");
+  const [attributionLink, setAttributionLink] = useState("https://aavacbot.com");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -91,6 +93,7 @@ export default function WidgetSettings() {
     setChatAgentId(data.chat_agent_id || "");
     setRetellApiKey(data.retell_api_key || "");
     setAllowedDomains((data.allowed_domains || []).join("\n"));
+    setAttributionLink(data.attribution_link || "https://aavacbot.com");
     setLoadingWidget(false);
   };
 
@@ -116,6 +119,7 @@ export default function WidgetSettings() {
           .split("\n")
           .map((d) => d.trim())
           .filter(Boolean),
+        attribution_link: attributionLink || null,
       })
       .eq("id", widget.id);
 
@@ -272,6 +276,27 @@ export default function WidgetSettings() {
                   <SelectItem value="bottom-left">Bottom Left</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </section>
+
+          {/* Attribution Link */}
+          <section className="glass rounded-xl p-6 space-y-6">
+            <h2 className="text-lg font-semibold">Attribution Link</h2>
+            <p className="text-sm text-muted-foreground">
+              A small "Powered by" link appears at the bottom of the widget. Customize the URL or leave empty to remove.
+            </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="attributionLink">Attribution URL</Label>
+              <Input
+                id="attributionLink"
+                value={attributionLink}
+                onChange={(e) => setAttributionLink(e.target.value)}
+                placeholder="https://yourwebsite.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to hide the attribution link entirely
+              </p>
             </div>
           </section>
 

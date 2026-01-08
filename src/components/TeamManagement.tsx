@@ -34,7 +34,7 @@ interface Team {
 }
 
 export default function TeamManagement() {
-  const { user, subscription } = useAuth();
+  const { user } = useAuth();
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
@@ -42,9 +42,6 @@ export default function TeamManagement() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
   const [sending, setSending] = useState(false);
-
-  const isPro = subscription?.tier === "pro" || subscription?.tier === "admin";
-  const maxMembers = 3;
 
   useEffect(() => {
     if (user) {
@@ -109,10 +106,6 @@ export default function TeamManagement() {
 
   async function sendInvitation() {
     if (!team || !inviteEmail) return;
-    if (members.length + invitations.length >= maxMembers) {
-      toast.error(`Pro accounts are limited to ${maxMembers} team members`);
-      return;
-    }
 
     setSending(true);
     try {
@@ -167,29 +160,6 @@ export default function TeamManagement() {
     }
   }
 
-  if (!isPro) {
-    return (
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Team Management
-          </CardTitle>
-          <CardDescription>
-            Upgrade to Pro to invite team members
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Team features are available on Pro plans.</p>
-            <p className="text-sm mt-2">Invite up to 3 team members to collaborate.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (loading) {
     return (
       <Card className="border-border">
@@ -208,7 +178,7 @@ export default function TeamManagement() {
           Team Management
         </CardTitle>
         <CardDescription>
-          {members.length + invitations.length}/{maxMembers} team members
+          Invite team members to collaborate on your widgets
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -271,35 +241,33 @@ export default function TeamManagement() {
         ))}
 
         {/* Invite Form */}
-        {members.length + invitations.length < maxMembers && (
-          <div className="pt-4 border-t border-border">
-            <Label className="text-sm font-medium mb-3 block">Invite Team Member</Label>
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="colleague@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="flex-1"
-              />
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={sendInvitation} disabled={!inviteEmail || sending}>
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Viewers can see widgets. Editors can create and modify widgets.
-            </p>
+        <div className="pt-4 border-t border-border">
+          <Label className="text-sm font-medium mb-3 block">Invite Team Member</Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="colleague@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={inviteRole} onValueChange={setInviteRole}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="editor">Editor</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={sendInvitation} disabled={!inviteEmail || sending}>
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            </Button>
           </div>
-        )}
+          <p className="text-xs text-muted-foreground mt-2">
+            Viewers can see widgets. Editors can create and modify widgets.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

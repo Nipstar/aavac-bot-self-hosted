@@ -24,10 +24,11 @@ interface DemoSettings {
 
 export default function AdminDemo() {
   const navigate = useNavigate();
-  const { user, subscription, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [settings, setSettings] = useState<DemoSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -39,24 +40,37 @@ export default function AdminDemo() {
   const [voiceAgentId, setVoiceAgentId] = useState("");
   const [chatAgentId, setChatAgentId] = useState("");
 
-  const isAdmin = subscription?.is_admin || false;
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
-    } else if (!loading && !isAdmin) {
-      toast.error("Admin access required");
-      navigate("/dashboard");
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user && isAdmin) {
-      fetchSettings();
+    if (user) {
+      checkAdminAndFetchSettings();
     }
-  }, [user, isAdmin]);
+  }, [user]);
 
-  const fetchSettings = async () => {
+  const checkAdminAndFetchSettings = async () => {
+    // Check if user is admin
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user!.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const adminStatus = !!roleData;
+    setIsAdmin(adminStatus);
+
+    if (!adminStatus) {
+      toast.error("Admin access required");
+      navigate("/dashboard");
+      return;
+    }
+
+    // Fetch settings
     const { data, error } = await supabase
       .from("demo_settings")
       .select("*")
@@ -129,7 +143,6 @@ export default function AdminDemo() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link
@@ -151,7 +164,6 @@ export default function AdminDemo() {
         </div>
       </header>
 
-      {/* Settings Form */}
       <main className="container mx-auto px-6 py-8 max-w-2xl">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -164,123 +176,66 @@ export default function AdminDemo() {
         </div>
 
         <div className="space-y-8">
-          {/* Basic Settings */}
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Display Settings</h2>
 
             <div className="space-y-2">
               <Label htmlFor="title">Widget Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="AI Assistant"
-              />
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="AI Assistant" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="greeting">Greeting Message</Label>
-              <Textarea
-                id="greeting"
-                value={greeting}
-                onChange={(e) => setGreeting(e.target.value)}
-                placeholder="Hi there! 👋 How can I help you today?"
-                rows={2}
-              />
+              <Textarea id="greeting" value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="Hi there! 👋 How can I help you today?" rows={2} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="color">Primary Color</Label>
               <div className="flex gap-3">
-                <Input
-                  id="color"
-                  type="color"
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-16 h-10 p-1 cursor-pointer"
-                />
-                <Input
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="flex-1"
-                />
+                <Input id="color" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-16 h-10 p-1 cursor-pointer" />
+                <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
               </div>
             </div>
           </section>
 
-          {/* Features */}
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Features</h2>
-
             <div className="flex items-center justify-between">
               <div>
                 <Label>Voice Mode</Label>
-                <p className="text-sm text-muted-foreground">
-                  Allow voice conversations in demo
-                </p>
+                <p className="text-sm text-muted-foreground">Allow voice conversations in demo</p>
               </div>
               <Switch checked={enableVoice} onCheckedChange={setEnableVoice} />
             </div>
-
             <div className="flex items-center justify-between">
               <div>
                 <Label>Chat Mode</Label>
-                <p className="text-sm text-muted-foreground">
-                  Allow text conversations in demo
-                </p>
+                <p className="text-sm text-muted-foreground">Allow text conversations in demo</p>
               </div>
               <Switch checked={enableChat} onCheckedChange={setEnableChat} />
             </div>
           </section>
 
-          {/* Retell Configuration */}
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Retell AI Configuration</h2>
-            <p className="text-sm text-muted-foreground">
-              Configure the Retell API for the demo widget. Leave blank to use global secrets.
-            </p>
-
+            <p className="text-sm text-muted-foreground">Configure the Retell API for the demo widget.</p>
             <div className="space-y-2">
               <Label htmlFor="retellApiKey">Retell API Key</Label>
-              <Input
-                id="retellApiKey"
-                type="password"
-                value={retellApiKey}
-                onChange={(e) => setRetellApiKey(e.target.value)}
-                placeholder="Uses global secret if empty"
-              />
+              <Input id="retellApiKey" type="password" value={retellApiKey} onChange={(e) => setRetellApiKey(e.target.value)} placeholder="Uses global secret if empty" />
               <p className="text-xs text-muted-foreground">
                 Get your API key from{" "}
-                <a
-                  href="https://dashboard.retellai.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  Retell Dashboard
-                  <ExternalLink className="w-3 h-3" />
+                <a href="https://dashboard.retellai.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                  Retell Dashboard <ExternalLink className="w-3 h-3" />
                 </a>
               </p>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="voiceAgent">Voice Agent ID</Label>
-              <Input
-                id="voiceAgent"
-                value={voiceAgentId}
-                onChange={(e) => setVoiceAgentId(e.target.value)}
-                placeholder="Uses global secret if empty"
-              />
+              <Input id="voiceAgent" value={voiceAgentId} onChange={(e) => setVoiceAgentId(e.target.value)} placeholder="Uses global secret if empty" />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="chatAgent">Chat Agent ID</Label>
-              <Input
-                id="chatAgent"
-                value={chatAgentId}
-                onChange={(e) => setChatAgentId(e.target.value)}
-                placeholder="Uses global secret if empty"
-              />
+              <Input id="chatAgent" value={chatAgentId} onChange={(e) => setChatAgentId(e.target.value)} placeholder="Uses global secret if empty" />
             </div>
           </section>
         </div>

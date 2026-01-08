@@ -9,7 +9,7 @@ import WhitelabelSettings from "@/components/WhitelabelSettings";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, profile, subscription, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -24,8 +24,6 @@ export default function Settings() {
       </div>
     );
   }
-
-  const isPro = subscription?.tier === "pro" || subscription?.tier === "admin";
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,12 +76,6 @@ export default function Settings() {
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Name</span>
                     <span>{profile?.full_name || "Not set"}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Plan</span>
-                    <span className="capitalize font-medium text-primary">
-                      {subscription?.tier || "Free"}
-                    </span>
                   </div>
                 </div>
               </div>

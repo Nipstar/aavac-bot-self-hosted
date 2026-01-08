@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,8 @@ import {
   Code,
   User,
   LogOut,
-  Crown,
   Settings,
-  CreditCard,
-  Sparkles,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface Widget {
   id: string;
@@ -51,35 +47,18 @@ interface Widget {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { user, profile, subscription, loading, signOut, refreshSubscription } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loadingWidgets, setLoadingWidgets] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newWidgetName, setNewWidgetName] = useState("");
-  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
-  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
-  // Handle checkout result
-  useEffect(() => {
-    const checkoutResult = searchParams.get("checkout");
-    if (checkoutResult === "success") {
-      toast.success("Subscription activated! Welcome to your new plan.");
-      refreshSubscription();
-      // Clean up URL
-      window.history.replaceState({}, "", "/dashboard");
-    } else if (checkoutResult === "canceled") {
-      toast.info("Checkout canceled");
-      window.history.replaceState({}, "", "/dashboard");
-    }
-  }, [searchParams, refreshSubscription]);
 
   useEffect(() => {
     if (user) {
@@ -102,18 +81,9 @@ export default function Dashboard() {
     setLoadingWidgets(false);
   };
 
-  const widgetLimit = subscription?.widget_limit || 5;
-  const currentTier = subscription?.tier || "free";
-  const canCreateWidget = widgets.length < widgetLimit;
-
   const createWidget = async () => {
     if (!newWidgetName.trim()) {
       toast.error("Please enter a widget name");
-      return;
-    }
-
-    if (!canCreateWidget) {
-      toast.error(`You've reached your limit of ${widgetLimit} widgets. Upgrade to create more.`);
       return;
     }
 
@@ -159,41 +129,6 @@ export default function Dashboard() {
     toast.success("Embed code copied to clipboard!");
   };
 
-  const handleCheckout = async (tier: "starter" | "pro") => {
-    setIsCheckingOut(tier);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { tier },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error("Failed to start checkout");
-    } finally {
-      setIsCheckingOut(null);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setIsOpeningPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (err) {
-      console.error("Portal error:", err);
-      toast.error("Failed to open subscription management");
-    } finally {
-      setIsOpeningPortal(false);
-    }
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -207,16 +142,6 @@ export default function Dashboard() {
     );
   }
 
-  const tierLabels: Record<string, string> = {
-    free: "Free",
-    starter: "Starter",
-    pro: "Pro",
-    enterprise: "Enterprise",
-    admin: "Admin",
-  };
-
-  const isAdmin = subscription?.is_admin || false;
-
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -227,35 +152,6 @@ export default function Dashboard() {
           </Link>
           
           <div className="flex items-center gap-4">
-            {currentTier === "free" && !isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Crown className="w-4 h-4" />
-                    Upgrade
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => handleCheckout("starter")} disabled={!!isCheckingOut}>
-                    {isCheckingOut === "starter" ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Starter - $19/mo
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCheckout("pro")} disabled={!!isCheckingOut}>
-                    {isCheckingOut === "pro" ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Crown className="w-4 h-4 mr-2" />
-                    )}
-                    Pro - $39/mo
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -266,43 +162,14 @@ export default function Dashboard() {
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium">{profile?.full_name || "User"}</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={currentTier === "free" ? "secondary" : currentTier === "admin" ? "destructive" : "default"} className="text-xs">
-                      {tierLabels[currentTier]}
-                    </Badge>
-                    {subscription?.is_trialing && (
-                      <Badge variant="outline" className="text-xs">Trial</Badge>
-                    )}
-                    {isAdmin && (
-                      <Badge variant="outline" className="text-xs border-destructive text-destructive">Super User</Badge>
-                    )}
-                  </div>
                 </div>
                 <DropdownMenuSeparator />
-                {currentTier !== "free" && (
-                  <DropdownMenuItem onClick={handleManageSubscription} disabled={isOpeningPortal}>
-                    {isOpeningPortal ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <CreditCard className="w-4 h-4 mr-2" />
-                    )}
-                    Manage Subscription
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem asChild>
                   <Link to="/settings">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/demo">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Demo Settings
-                    </Link>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
@@ -319,14 +186,13 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold">Your Widgets</h1>
             <p className="text-muted-foreground">
-              {widgets.length}/{widgetLimit >= 999999 ? "∞" : widgetLimit} widgets used
-              {subscription?.is_trialing && " (Trial)"}
+              {widgets.length} widget{widgets.length !== 1 ? "s" : ""} created
             </p>
           </div>
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button disabled={!canCreateWidget} className="gap-2">
+              <Button className="gap-2">
                 <Plus className="w-4 h-4" />
                 New Widget
               </Button>
@@ -360,44 +226,6 @@ export default function Dashboard() {
             </DialogContent>
           </Dialog>
         </div>
-
-        {/* Upgrade Banner for Free Users */}
-        {currentTier === "free" && !isAdmin && (
-          <div className="glass rounded-xl p-6 mb-8 border-primary/20 bg-primary/5">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-primary" />
-                  Upgrade to unlock more widgets
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Free plan includes attribution link. Upgrade to remove it and get custom branding.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleCheckout("starter")}
-                  disabled={!!isCheckingOut}
-                >
-                  {isCheckingOut === "starter" ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Starter $19/mo
-                </Button>
-                <Button 
-                  onClick={() => handleCheckout("pro")}
-                  disabled={!!isCheckingOut}
-                >
-                  {isCheckingOut === "pro" ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Pro $39/mo
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {loadingWidgets ? (
           <div className="flex items-center justify-center py-20">
