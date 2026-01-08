@@ -187,7 +187,7 @@ export default function Dashboard() {
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link to="/admin-demo">
+                    <Link to="/admin/demo">
                       <Shield className="w-4 h-4 mr-2" />
                       Admin Settings
                     </Link>
