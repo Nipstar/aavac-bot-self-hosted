@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,20 +12,49 @@ serve(async (req) => {
   }
 
   try {
-    const RETELL_API_KEY = Deno.env.get('RETELL_API_KEY');
-    const RETELL_TEXT_AGENT_ID = Deno.env.get('RETELL_TEXT_AGENT_ID');
+    let retellApiKey = Deno.env.get('RETELL_API_KEY');
+    let retellTextAgentId = Deno.env.get('RETELL_TEXT_AGENT_ID');
 
-    if (!RETELL_API_KEY) {
+    const { message, chat_id, api_key: widgetApiKey } = await req.json();
+
+    // Check if api_key is provided to fetch widget-specific config
+    if (widgetApiKey) {
+      console.log('Fetching widget config for api_key:', widgetApiKey.substring(0, 10) + '...');
+      
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: widget, error } = await supabase
+        .from('widget_configs')
+        .select('retell_api_key, chat_agent_id')
+        .eq('api_key', widgetApiKey)
+        .single();
+
+      if (error) {
+        console.error('Error fetching widget config:', error);
+      } else if (widget) {
+        // Use widget-specific keys if available
+        if (widget.retell_api_key) {
+          retellApiKey = widget.retell_api_key;
+          console.log('Using widget-specific Retell API key');
+        }
+        if (widget.chat_agent_id) {
+          retellTextAgentId = widget.chat_agent_id;
+          console.log('Using widget-specific chat agent ID:', retellTextAgentId);
+        }
+      }
+    }
+
+    if (!retellApiKey) {
       console.error('RETELL_API_KEY is not configured');
       throw new Error('RETELL_API_KEY is not configured');
     }
 
-    if (!RETELL_TEXT_AGENT_ID) {
+    if (!retellTextAgentId) {
       console.error('RETELL_TEXT_AGENT_ID is not configured');
       throw new Error('RETELL_TEXT_AGENT_ID is not configured');
     }
-
-    const { message, chat_id } = await req.json();
 
     if (!message) {
       throw new Error('Message is required');
@@ -34,16 +64,16 @@ serve(async (req) => {
 
     // If no chat_id, create a new chat session first
     if (!currentChatId) {
-      console.log('Creating new chat session with agent:', RETELL_TEXT_AGENT_ID);
+      console.log('Creating new chat session with agent:', retellTextAgentId);
       
       const createChatResponse = await fetch("https://api.retellai.com/create-chat", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${RETELL_API_KEY}`,
+          "Authorization": `Bearer ${retellApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          agent_id: RETELL_TEXT_AGENT_ID,
+          agent_id: retellTextAgentId,
         }),
       });
 
@@ -64,7 +94,7 @@ serve(async (req) => {
     const completionResponse = await fetch("https://api.retellai.com/create-chat-completion", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${RETELL_API_KEY}`,
+        "Authorization": `Bearer ${retellApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

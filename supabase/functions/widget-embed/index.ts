@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// This endpoint serves the embeddable widget script
+// This endpoint serves the embeddable widget script with voice and chat support
 serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -16,11 +16,20 @@ serve(async (req) => {
   const apiKey = url.searchParams.get('api_key') || '';
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 
-  // Minified widget embed script
+  // Widget embed script with voice and chat modes
   const embedScript = `
 (function() {
   var API_KEY = "${apiKey}";
   var BASE_URL = "${supabaseUrl}/functions/v1";
+  var retellClient = null;
+  
+  // Load Retell SDK
+  var retellScript = document.createElement("script");
+  retellScript.src = "https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.umd.js";
+  retellScript.onload = function() {
+    console.log("RetellWidget: SDK loaded");
+  };
+  document.head.appendChild(retellScript);
   
   // Fetch widget config
   fetch(BASE_URL + "/widget-config?api_key=" + API_KEY)
@@ -37,6 +46,12 @@ serve(async (req) => {
     });
 
   function initWidget(config) {
+    var enableVoice = config.enable_voice !== false;
+    var enableChat = config.enable_chat !== false;
+    var currentMode = enableChat ? "chat" : "voice";
+    var callState = "idle";
+    var isAgentSpeaking = false;
+    
     // Inject styles
     var style = document.createElement("style");
     style.textContent = \`
@@ -59,6 +74,11 @@ serve(async (req) => {
       .retell-widget-close { background: none; border: none; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s; }
       .retell-widget-close:hover { background: rgba(255,255,255,0.1); }
       .retell-widget-close svg { width: 20px; height: 20px; fill: rgba(255,255,255,0.6); }
+      .retell-widget-mode-toggle { display: flex; padding: 8px 16px; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .retell-widget-mode-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+      .retell-widget-mode-btn.active { background: rgba(255,255,255,0.1); color: white; }
+      .retell-widget-mode-btn:hover:not(.active) { background: rgba(255,255,255,0.05); }
+      .retell-widget-mode-btn svg { width: 16px; height: 16px; fill: currentColor; }
       .retell-widget-messages { height: 320px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
       .retell-widget-msg { max-width: 85%; padding: 12px; border-radius: 16px; font-size: 14px; line-height: 1.4; animation: retell-fade-in 0.3s; }
       .retell-widget-msg.user { margin-left: auto; border-bottom-right-radius: 4px; color: white; }
@@ -75,8 +95,18 @@ serve(async (req) => {
       .retell-widget-typing span { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; animation: retell-bounce 1.4s infinite; }
       .retell-widget-typing span:nth-child(2) { animation-delay: 0.2s; }
       .retell-widget-typing span:nth-child(3) { animation-delay: 0.4s; }
+      .retell-widget-voice-area { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; }
+      .retell-widget-call-btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+      .retell-widget-call-btn svg { width: 32px; height: 32px; fill: white; }
+      .retell-widget-call-btn:hover { transform: scale(1.05); }
+      .retell-widget-call-btn.calling { animation: retell-pulse 1.5s infinite; }
+      .retell-widget-call-btn.active { background: #ef4444 !important; }
+      .retell-widget-call-status { margin-top: 16px; color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; }
+      .retell-widget-visualizer { display: flex; align-items: center; justify-content: center; gap: 4px; height: 40px; margin-top: 20px; }
+      .retell-widget-bar { width: 4px; background: white; border-radius: 2px; transition: height 0.1s; }
       @keyframes retell-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes retell-bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+      @keyframes retell-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(20, 184, 166, 0); } }
     \`;
     document.head.appendChild(style);
 
@@ -85,6 +115,23 @@ serve(async (req) => {
     container.className = "retell-widget-container " + (config.position || "bottom-right");
     
     var primaryColor = config.primary_color || "#14b8a6";
+    
+    // Build mode toggle HTML
+    var modeToggleHtml = "";
+    if (enableVoice && enableChat) {
+      modeToggleHtml = \`
+        <div class="retell-widget-mode-toggle">
+          <button class="retell-widget-mode-btn \${currentMode === 'chat' ? 'active' : ''}" data-mode="chat">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            Chat
+          </button>
+          <button class="retell-widget-mode-btn \${currentMode === 'voice' ? 'active' : ''}" data-mode="voice">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6.91 6c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+            Voice
+          </button>
+        </div>
+      \`;
+    }
     
     // Create panel
     var panel = document.createElement("div");
@@ -104,12 +151,30 @@ serve(async (req) => {
           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
-      <div class="retell-widget-messages"></div>
-      <div class="retell-widget-input-area">
-        <input type="text" class="retell-widget-input" placeholder="Type a message...">
-        <button class="retell-widget-send" style="background:\${primaryColor}">
-          <svg viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+      \${modeToggleHtml}
+      <div class="retell-widget-content">
+        <div class="retell-widget-chat-content" style="display: \${currentMode === 'chat' ? 'block' : 'none'}">
+          <div class="retell-widget-messages"></div>
+          <div class="retell-widget-input-area">
+            <input type="text" class="retell-widget-input" placeholder="Type a message...">
+            <button class="retell-widget-send" style="background:\${primaryColor}">
+              <svg viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="retell-widget-voice-content" style="display: \${currentMode === 'voice' ? 'flex' : 'none'}; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+          <button class="retell-widget-call-btn" style="background: \${primaryColor}">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6.91 6c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+          </button>
+          <div class="retell-widget-call-status">Click to start voice call</div>
+          <div class="retell-widget-visualizer" style="display: none;">
+            <div class="retell-widget-bar" style="height: 8px;"></div>
+            <div class="retell-widget-bar" style="height: 12px;"></div>
+            <div class="retell-widget-bar" style="height: 16px;"></div>
+            <div class="retell-widget-bar" style="height: 12px;"></div>
+            <div class="retell-widget-bar" style="height: 8px;"></div>
+          </div>
+        </div>
       </div>
     \`;
     
@@ -131,9 +196,36 @@ serve(async (req) => {
     var input = panel.querySelector(".retell-widget-input");
     var sendBtn = panel.querySelector(".retell-widget-send");
     var closeBtn = panel.querySelector(".retell-widget-close");
+    var chatContent = panel.querySelector(".retell-widget-chat-content");
+    var voiceContent = panel.querySelector(".retell-widget-voice-content");
+    var callBtn = panel.querySelector(".retell-widget-call-btn");
+    var callStatus = panel.querySelector(".retell-widget-call-status");
+    var visualizer = panel.querySelector(".retell-widget-visualizer");
+    var bars = panel.querySelectorAll(".retell-widget-bar");
+    var modeBtns = panel.querySelectorAll(".retell-widget-mode-btn");
     
-    // Add greeting
-    addMessage("agent", config.greeting || "Hi! How can I help you today?");
+    // Add greeting for chat
+    if (enableChat) {
+      addMessage("agent", config.greeting || "Hi! How can I help you today?");
+    }
+    
+    // Mode toggle
+    modeBtns.forEach(function(modeBtn) {
+      modeBtn.onclick = function() {
+        var mode = this.getAttribute("data-mode");
+        currentMode = mode;
+        modeBtns.forEach(function(b) { b.classList.remove("active"); });
+        this.classList.add("active");
+        
+        if (mode === "chat") {
+          chatContent.style.display = "block";
+          voiceContent.style.display = "none";
+        } else {
+          chatContent.style.display = "none";
+          voiceContent.style.display = "flex";
+        }
+      };
+    });
     
     // Toggle
     btn.onclick = function() {
@@ -142,13 +234,19 @@ serve(async (req) => {
       btn.innerHTML = isOpen 
         ? '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
         : '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
-      if (isOpen) input.focus();
+      if (isOpen && currentMode === "chat") input.focus();
     };
     
     closeBtn.onclick = function() {
       isOpen = false;
       panel.classList.add("hidden");
       btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
+      // End call if active
+      if (callState === "active" && retellClient) {
+        retellClient.stopCall();
+        callState = "idle";
+        updateVoiceUI();
+      }
     };
     
     function addMessage(role, text) {
@@ -183,7 +281,7 @@ serve(async (req) => {
       fetch(BASE_URL + "/retell-text-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, chat_id: chatId })
+        body: JSON.stringify({ message: text, chat_id: chatId, api_key: API_KEY })
       })
       .then(function(res) { return res.json(); })
       .then(function(data) {
@@ -207,6 +305,134 @@ serve(async (req) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
+      }
+    };
+    
+    // Voice functionality
+    function updateVoiceUI() {
+      if (callState === "idle") {
+        callBtn.classList.remove("calling", "active");
+        callBtn.style.background = primaryColor;
+        callBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6.91 6c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>';
+        callStatus.textContent = "Click to start voice call";
+        visualizer.style.display = "none";
+      } else if (callState === "connecting") {
+        callBtn.classList.add("calling");
+        callBtn.classList.remove("active");
+        callStatus.textContent = "Connecting...";
+        visualizer.style.display = "none";
+      } else if (callState === "active") {
+        callBtn.classList.remove("calling");
+        callBtn.classList.add("active");
+        callBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><line x1="4" y1="4" x2="20" y2="20" stroke="white" stroke-width="2"/></svg>';
+        callStatus.textContent = isAgentSpeaking ? "AI is speaking..." : "Listening...";
+        visualizer.style.display = "flex";
+      }
+    }
+    
+    function animateVisualizer() {
+      if (callState !== "active") return;
+      bars.forEach(function(bar, i) {
+        var height = isAgentSpeaking ? Math.random() * 30 + 10 : Math.random() * 15 + 5;
+        bar.style.height = height + "px";
+      });
+      requestAnimationFrame(animateVisualizer);
+    }
+    
+    async function startVoiceCall() {
+      if (callState !== "idle") return;
+      
+      try {
+        // Check for microphone permission
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        callState = "connecting";
+        updateVoiceUI();
+        
+        // Create call via edge function
+        var response = await fetch(BASE_URL + "/retell-create-call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ api_key: API_KEY })
+        });
+        
+        var data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (!data.access_token) {
+          throw new Error("No access token received");
+        }
+        
+        // Initialize Retell client
+        if (window.RetellWebClient) {
+          retellClient = new window.RetellWebClient();
+          
+          retellClient.on("call_started", function() {
+            console.log("RetellWidget: Call started");
+            callState = "active";
+            updateVoiceUI();
+            animateVisualizer();
+          });
+          
+          retellClient.on("call_ended", function() {
+            console.log("RetellWidget: Call ended");
+            callState = "idle";
+            isAgentSpeaking = false;
+            updateVoiceUI();
+          });
+          
+          retellClient.on("agent_start_talking", function() {
+            isAgentSpeaking = true;
+            updateVoiceUI();
+          });
+          
+          retellClient.on("agent_stop_talking", function() {
+            isAgentSpeaking = false;
+            updateVoiceUI();
+          });
+          
+          retellClient.on("error", function(err) {
+            console.error("RetellWidget: Error", err);
+            callState = "idle";
+            isAgentSpeaking = false;
+            updateVoiceUI();
+            callStatus.textContent = "Call failed. Try again.";
+          });
+          
+          await retellClient.startCall({
+            accessToken: data.access_token,
+            sampleRate: 24000,
+            captureDeviceId: "default"
+          });
+        } else {
+          throw new Error("Retell SDK not loaded");
+        }
+        
+      } catch (err) {
+        console.error("RetellWidget: Failed to start call", err);
+        callState = "idle";
+        updateVoiceUI();
+        callStatus.textContent = err.message || "Failed to start call";
+      }
+    }
+    
+    function endVoiceCall() {
+      if (retellClient) {
+        retellClient.stopCall();
+      }
+      callState = "idle";
+      isAgentSpeaking = false;
+      updateVoiceUI();
+    }
+    
+    callBtn.onclick = function() {
+      if (callState === "idle") {
+        startVoiceCall();
+      } else {
+        endVoiceCall();
       }
     };
   }
