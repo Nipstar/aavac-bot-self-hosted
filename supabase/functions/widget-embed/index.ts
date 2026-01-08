@@ -22,12 +22,28 @@ serve(async (req) => {
   var API_KEY = "${apiKey}";
   var BASE_URL = "${supabaseUrl}/functions/v1";
   var retellClient = null;
+  var sdkLoaded = false;
+  var configLoaded = false;
+  var widgetConfig = null;
+  
+  function tryInitWidget() {
+    if (sdkLoaded && configLoaded && widgetConfig) {
+      initWidget(widgetConfig);
+    }
+  }
   
   // Load Retell SDK
   var retellScript = document.createElement("script");
   retellScript.src = "https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.umd.js";
   retellScript.onload = function() {
     console.log("RetellWidget: SDK loaded");
+    sdkLoaded = true;
+    tryInitWidget();
+  };
+  retellScript.onerror = function() {
+    console.error("RetellWidget: Failed to load SDK");
+    sdkLoaded = true; // Continue anyway, will show error when trying to call
+    tryInitWidget();
   };
   document.head.appendChild(retellScript);
   
@@ -39,7 +55,9 @@ serve(async (req) => {
         console.error("RetellWidget: " + config.error);
         return;
       }
-      initWidget(config);
+      widgetConfig = config;
+      configLoaded = true;
+      tryInitWidget();
     })
     .catch(function(err) {
       console.error("RetellWidget: Failed to load config", err);
@@ -79,18 +97,19 @@ serve(async (req) => {
       .retell-widget-mode-btn.active { background: rgba(255,255,255,0.1); color: white; }
       .retell-widget-mode-btn:hover:not(.active) { background: rgba(255,255,255,0.05); }
       .retell-widget-mode-btn svg { width: 16px; height: 16px; fill: currentColor; }
-      .retell-widget-messages { height: 320px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-      .retell-widget-msg { max-width: 85%; padding: 12px; border-radius: 16px; font-size: 14px; line-height: 1.4; animation: retell-fade-in 0.3s; }
+      .retell-widget-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 280px; max-height: 320px; }
+      .retell-widget-msg { max-width: 85%; padding: 12px; border-radius: 16px; font-size: 14px; line-height: 1.4; animation: retell-fade-in 0.3s; word-wrap: break-word; }
       .retell-widget-msg.user { margin-left: auto; border-bottom-right-radius: 4px; color: white; }
       .retell-widget-msg.agent { margin-right: auto; background: rgba(255,255,255,0.1); color: white; border-bottom-left-radius: 4px; }
-      .retell-widget-input-area { padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; }
-      .retell-widget-input { flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px 16px; font-size: 14px; color: white; outline: none; }
+      .retell-widget-chat-content { display: flex; flex-direction: column; height: 380px; }
+      .retell-widget-input-area { padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; flex-shrink: 0; }
+      .retell-widget-input { flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px 16px; font-size: 14px; color: white; outline: none; min-width: 0; }
       .retell-widget-input::placeholder { color: rgba(255,255,255,0.5); }
       .retell-widget-input:focus { border-color: rgba(255,255,255,0.4); }
-      .retell-widget-send { background: none; border: none; padding: 10px; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+      .retell-widget-send { background: none; border: none; padding: 10px; border-radius: 12px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
       .retell-widget-send:hover { background: rgba(255,255,255,0.1); }
       .retell-widget-send:disabled { opacity: 0.5; cursor: not-allowed; }
-      .retell-widget-send svg { width: 20px; height: 20px; }
+      .retell-widget-send svg { width: 20px; height: 20px; display: block; }
       .retell-widget-typing { display: flex; gap: 4px; padding: 12px; }
       .retell-widget-typing span { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; animation: retell-bounce 1.4s infinite; }
       .retell-widget-typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -153,7 +172,7 @@ serve(async (req) => {
       </div>
       \${modeToggleHtml}
       <div class="retell-widget-content">
-        <div class="retell-widget-chat-content" style="display: \${currentMode === 'chat' ? 'block' : 'none'}">
+        <div class="retell-widget-chat-content" style="display: \${currentMode === 'chat' ? 'flex' : 'none'}">
           <div class="retell-widget-messages"></div>
           <div class="retell-widget-input-area">
             <input type="text" class="retell-widget-input" placeholder="Type a message...">
@@ -218,7 +237,7 @@ serve(async (req) => {
         this.classList.add("active");
         
         if (mode === "chat") {
-          chatContent.style.display = "block";
+          chatContent.style.display = "flex";
           voiceContent.style.display = "none";
         } else {
           chatContent.style.display = "none";
