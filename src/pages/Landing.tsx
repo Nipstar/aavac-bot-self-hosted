@@ -279,7 +279,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-bold mb-4">Powered by Retell AI</h2>
           <p className="text-muted-foreground mb-6">
-            AAVAC Bot uses <a href="https://www.retellai.com/partner/antek-automation" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Retell AI</a> as our AI voice and chat provider. 
+            AAVAC Bot uses <a href="https://www.retellai.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Retell AI</a> as our AI voice and chat provider. 
             Retell AI delivers natural, human-like conversations with ultra-low latency, 
             making your widgets feel responsive and intelligent.
           </p>
