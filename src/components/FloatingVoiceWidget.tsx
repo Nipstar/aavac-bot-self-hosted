@@ -26,6 +26,10 @@ interface ChatMessage {
 
 export interface WidgetConfig {
   primaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  secondaryColor?: string;
+  buttonTextColor?: string;
   position?: "bottom-right" | "bottom-left";
   greeting?: string;
   title?: string;
@@ -57,7 +61,11 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
   const { toast } = useToast();
 
   const {
-    primaryColor = "hsl(175, 80%, 50%)",
+    primaryColor = "#14b8a6",
+    backgroundColor = "#ffffff",
+    textColor = "#1f2937",
+    secondaryColor = "#f3f4f6",
+    buttonTextColor = "#ffffff",
     position = "bottom-right",
     greeting = "Hi! How can I help you today?",
     title = "AI Assistant",
@@ -274,11 +282,17 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
             : "opacity-0 scale-95 translate-y-4 pointer-events-none"
         )}
       >
-        <div className="w-[340px] sm:w-[380px] glass rounded-2xl shadow-2xl overflow-hidden">
+        <div 
+          className="w-[340px] sm:w-[380px] rounded-2xl shadow-2xl overflow-hidden"
+          style={{ backgroundColor: backgroundColor }}
+        >
           {/* Header */}
           <div 
-            className="p-4 border-b border-border flex items-center justify-between"
-            style={{ background: `linear-gradient(135deg, ${primaryColor}15, transparent)` }}
+            className="p-4 border-b flex items-center justify-between"
+            style={{ 
+              background: `linear-gradient(135deg, ${primaryColor}15, ${backgroundColor})`,
+              borderColor: `${textColor}15`
+            }}
           >
             <div className="flex items-center gap-3">
               <div 
@@ -288,42 +302,41 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
                 <MessageCircle className="w-5 h-5" style={{ color: primaryColor }} />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{title}</h3>
-                <p className="text-xs text-muted-foreground">Online now</p>
+                <h3 className="font-semibold" style={{ color: textColor }}>{title}</h3>
+                <p className="text-xs" style={{ color: `${textColor}80` }}>Online now</p>
               </div>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: `${textColor}60` }}
             >
-              <X className="w-5 h-5 text-muted-foreground" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Mode Toggle - only show if both modes enabled */}
           {enableVoice && enableChat && (
-            <div className="p-2 border-b border-border">
-              <div className="flex gap-1 p-1 rounded-lg bg-secondary/50">
+            <div className="p-2" style={{ borderBottom: `1px solid ${textColor}15` }}>
+              <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: secondaryColor }}>
                 <button
                   onClick={() => setMode("chat")}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
-                    mode === "chat"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                  className="flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: mode === "chat" ? primaryColor : "transparent",
+                    color: mode === "chat" ? buttonTextColor : `${textColor}80`,
+                  }}
                 >
                   <MessageSquare className="w-4 h-4" />
                   Chat
                 </button>
                 <button
                   onClick={() => setMode("voice")}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
-                    mode === "voice"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                  className="flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: mode === "voice" ? primaryColor : "transparent",
+                    color: mode === "voice" ? buttonTextColor : `${textColor}80`,
+                  }}
                 >
                   <Volume2 className="w-4 h-4" />
                   Voice
@@ -340,18 +353,24 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
                 {chatMessages.map((msg, i) => (
                   <div
                     key={i}
-                    className={cn(
-                      "max-w-[85%] p-3 rounded-2xl text-sm animate-fade-in",
-                      msg.role === "user"
-                        ? "ml-auto bg-primary text-primary-foreground rounded-br-sm"
-                        : "mr-auto bg-secondary text-secondary-foreground rounded-bl-sm"
-                    )}
+                    className="max-w-[85%] p-3 rounded-2xl text-sm animate-fade-in"
+                    style={{
+                      marginLeft: msg.role === "user" ? "auto" : undefined,
+                      marginRight: msg.role === "agent" ? "auto" : undefined,
+                      backgroundColor: msg.role === "user" ? primaryColor : secondaryColor,
+                      color: msg.role === "user" ? buttonTextColor : textColor,
+                      borderBottomRightRadius: msg.role === "user" ? "0.125rem" : undefined,
+                      borderBottomLeftRadius: msg.role === "agent" ? "0.125rem" : undefined,
+                    }}
                   >
                     {msg.text}
                   </div>
                 ))}
                 {isSending && (
-                  <div className="mr-auto bg-secondary text-secondary-foreground rounded-2xl rounded-bl-sm p-3 max-w-[85%]">
+                  <div 
+                    className="mr-auto rounded-2xl rounded-bl-sm p-3 max-w-[85%]"
+                    style={{ backgroundColor: secondaryColor, color: textColor }}
+                  >
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm">Thinking...</span>
@@ -362,7 +381,7 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
               </div>
 
               {/* Input */}
-              <div className="border-t border-border p-3 flex gap-2">
+              <div className="p-3 flex gap-2" style={{ borderTop: `1px solid ${textColor}15` }}>
                 <input
                   type="text"
                   value={inputText}
@@ -370,12 +389,18 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendChatMessage()}
                   placeholder="Type a message..."
                   disabled={isSending}
-                  className="flex-1 bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
+                  style={{ 
+                    backgroundColor: secondaryColor, 
+                    color: textColor, 
+                    border: `1px solid ${textColor}20`,
+                  }}
                 />
                 <button
                   onClick={sendChatMessage}
                   disabled={isSending || !inputText.trim()}
-                  className="bg-primary text-primary-foreground p-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: primaryColor, color: buttonTextColor }}
                 >
                   <Send className="w-5 h-5" />
                 </button>

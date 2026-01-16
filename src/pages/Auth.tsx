@@ -1,22 +1,34 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Check, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { z } from "zod";
-
-const emailSchema = z.string().email("Please enter a valid email address");
-const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
+interface PasswordRules {
+  minLength: number;
+  requireUppercase: boolean;
+  requireNumber: boolean;
+  requireSpecialChar: boolean;
+}
+
+interface GlobalSettings {
+  disable_public_signup: boolean;
+  min_password_length: number;
+  require_uppercase: boolean;
+  require_number: boolean;
+  require_special_char: boolean;
+}
+
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading } = useAuth();
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
@@ -24,14 +36,71 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupDisabled, setSignupDisabled] = useState(false);
+  const [isInvite, setIsInvite] = useState(false);
+  const [hasAnyUsers, setHasAnyUsers] = useState(true);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [passwordRules, setPasswordRules] = useState<PasswordRules>({
+    minLength: 8,
+    requireUppercase: true,
+    requireNumber: true,
+    requireSpecialChar: false,
+  });
 
-  // Check for password reset token in URL
+  // Check for invite token or password reset in URL
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get("type");
     if (type === "recovery") {
       setMode("reset");
     }
+    
+    const inviteToken = searchParams.get("invite");
+    if (inviteToken) {
+      setIsInvite(true);
+      setMode("signup");
+    }
+  }, [searchParams]);
+
+  // Fetch global settings for signup control and password rules
+  useEffect(() => {
+    const fetchSettings = async () => {
+      // Check if there are any users (first user can always sign up)
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      const hasUsers = (count ?? 0) > 0;
+      setHasAnyUsers(hasUsers);
+
+      if (!hasUsers) {
+        // First user - allow signup
+        setSignupDisabled(false);
+        setLoadingSettings(false);
+        return;
+      }
+
+      // Fetch global settings
+      const { data: settings } = await supabase
+        .from("global_settings")
+        .select("disable_public_signup, min_password_length, require_uppercase, require_number, require_special_char")
+        .limit(1)
+        .maybeSingle();
+
+      if (settings) {
+        setSignupDisabled(settings.disable_public_signup ?? false);
+        setPasswordRules({
+          minLength: settings.min_password_length ?? 8,
+          requireUppercase: settings.require_uppercase ?? true,
+          requireNumber: settings.require_number ?? true,
+          requireSpecialChar: settings.require_special_char ?? false,
+        });
+      }
+
+      setLoadingSettings(false);
+    };
+
+    fetchSettings();
   }, []);
 
   useEffect(() => {
@@ -40,12 +109,40 @@ export default function Auth() {
     }
   }, [user, loading, navigate, mode]);
 
+  const validatePassword = (pwd: string): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (pwd.length < passwordRules.minLength) {
+      errors.push(`At least ${passwordRules.minLength} characters`);
+    }
+    if (passwordRules.requireUppercase && !/[A-Z]/.test(pwd)) {
+      errors.push("One uppercase letter");
+    }
+    if (passwordRules.requireNumber && !/[0-9]/.test(pwd)) {
+      errors.push("One number");
+    }
+    if (passwordRules.requireSpecialChar && !/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+      errors.push("One special character");
+    }
+
+    return { valid: errors.length === 0, errors };
+  };
+
+  const getPasswordStrength = () => {
+    const checks = [
+      { label: `${passwordRules.minLength}+ characters`, valid: password.length >= passwordRules.minLength },
+      ...(passwordRules.requireUppercase ? [{ label: "Uppercase letter", valid: /[A-Z]/.test(password) }] : []),
+      ...(passwordRules.requireNumber ? [{ label: "Number", valid: /[0-9]/.test(password) }] : []),
+      ...(passwordRules.requireSpecialChar ? [{ label: "Special character", valid: /[!@#$%^&*(),.?":{}|<>]/.test(password) }] : []),
+    ];
+    return checks;
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) {
-      toast.error(emailResult.error.errors[0].message);
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -70,9 +167,9 @@ export default function Auth() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      toast.error(passwordResult.error.errors[0].message);
+    const validation = validatePassword(password);
+    if (!validation.valid) {
+      toast.error(`Password requirements not met: ${validation.errors.join(", ")}`);
       return;
     }
 
@@ -100,15 +197,14 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) {
-      toast.error(emailResult.error.errors[0].message);
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
     
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      toast.error(passwordResult.error.errors[0].message);
+    const validation = validatePassword(password);
+    if (!validation.valid) {
+      toast.error(`Password requirements not met: ${validation.errors.join(", ")}`);
       return;
     }
 
@@ -124,7 +220,24 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success("Account created! You're now signed in.");
+          // If this is the first user, make them admin
+          if (!hasAnyUsers) {
+            toast.success("Account created! You are the first user - setting up admin access...");
+            // The trigger will create the profile, we just need to add admin role
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData?.user) {
+              await supabase.from("user_roles").insert({
+                user_id: userData.user.id,
+                role: "admin",
+              });
+              // Enable signup restrictions by default
+              await supabase.from("global_settings").update({
+                disable_public_signup: true,
+              }).neq("id", "00000000-0000-0000-0000-000000000000"); // Update any row
+            }
+          } else {
+            toast.success("Account created! You're now signed in.");
+          }
           navigate("/dashboard");
         }
       } else {
@@ -145,7 +258,7 @@ export default function Auth() {
     }
   };
 
-  if (loading) {
+  if (loading || loadingSettings) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -153,7 +266,10 @@ export default function Auth() {
     );
   }
 
+  const canSignUp = !signupDisabled || isInvite || !hasAnyUsers;
+
   const getTitle = () => {
+    if (!hasAnyUsers && mode === "signup") return "Create Admin Account";
     switch (mode) {
       case "signup": return "Create your account";
       case "forgot": return "Reset your password";
@@ -163,8 +279,9 @@ export default function Auth() {
   };
 
   const getSubtitle = () => {
+    if (!hasAnyUsers && mode === "signup") return "You'll be the first admin of this platform";
     switch (mode) {
-      case "signup": return "Start building AI voice widgets for your website";
+      case "signup": return "Join the platform";
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
       default: return "Sign in to manage your widgets";
@@ -239,6 +356,22 @@ export default function Auth() {
                   required
                   className="h-12"
                 />
+                {password && (
+                  <div className="space-y-1 mt-2">
+                    {getPasswordStrength().map((check, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        {check.valid ? (
+                          <Check className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <X className="w-3 h-3 text-destructive" />
+                        )}
+                        <span className={check.valid ? "text-green-500" : "text-muted-foreground"}>
+                          {check.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -318,6 +451,22 @@ export default function Auth() {
                     required
                     className="h-12"
                   />
+                  {mode === "signup" && password && (
+                    <div className="space-y-1 mt-2">
+                      {getPasswordStrength().map((check, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          {check.valid ? (
+                            <Check className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <X className="w-3 h-3 text-destructive" />
+                          )}
+                          <span className={check.valid ? "text-green-500" : "text-muted-foreground"}>
+                            {check.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -328,7 +477,7 @@ export default function Auth() {
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : mode === "signup" ? (
-                    "Create Account"
+                    !hasAnyUsers ? "Create Admin Account" : "Create Account"
                   ) : (
                     "Sign In"
                   )}
@@ -336,15 +485,27 @@ export default function Auth() {
               </form>
 
               <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-                  className="text-primary hover:underline"
-                >
-                  {mode === "signup" 
-                    ? "Already have an account? Sign in" 
-                    : "Don't have an account? Sign up"}
-                </button>
+                {mode === "signup" ? (
+                  <button
+                    type="button"
+                    onClick={() => setMode("signin")}
+                    className="text-primary hover:underline"
+                  >
+                    Already have an account? Sign in
+                  </button>
+                ) : canSignUp ? (
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className="text-primary hover:underline"
+                  >
+                    Don't have an account? Sign up
+                  </button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Registration is by invitation only
+                  </p>
+                )}
               </div>
             </>
           )}

@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           attribution_text: string | null
           attribution_url: string | null
+          background_color: string | null
+          button_text_color: string | null
           chat_agent_id: string | null
           chat_type: string | null
           enable_chat: boolean | null
@@ -26,6 +28,8 @@ export type Database = {
           id: string
           primary_color: string | null
           retell_api_key: string | null
+          secondary_color: string | null
+          text_color: string | null
           title: string | null
           updated_at: string
           updated_by: string | null
@@ -35,6 +39,8 @@ export type Database = {
         Insert: {
           attribution_text?: string | null
           attribution_url?: string | null
+          background_color?: string | null
+          button_text_color?: string | null
           chat_agent_id?: string | null
           chat_type?: string | null
           enable_chat?: boolean | null
@@ -43,6 +49,8 @@ export type Database = {
           id?: string
           primary_color?: string | null
           retell_api_key?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
           title?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -52,6 +60,8 @@ export type Database = {
         Update: {
           attribution_text?: string | null
           attribution_url?: string | null
+          background_color?: string | null
+          button_text_color?: string | null
           chat_agent_id?: string | null
           chat_type?: string | null
           enable_chat?: boolean | null
@@ -60,6 +70,8 @@ export type Database = {
           id?: string
           primary_color?: string | null
           retell_api_key?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
           title?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -72,9 +84,18 @@ export type Database = {
         Row: {
           default_attribution_text: string | null
           default_attribution_url: string | null
+          default_background_color: string | null
+          default_button_text_color: string | null
           default_chat_agent_id: string | null
+          default_secondary_color: string | null
+          default_text_color: string | null
           default_voice_agent_id: string | null
+          disable_public_signup: boolean | null
           id: string
+          min_password_length: number | null
+          require_number: boolean | null
+          require_special_char: boolean | null
+          require_uppercase: boolean | null
           retell_api_key: string | null
           updated_at: string
           updated_by: string | null
@@ -82,9 +103,18 @@ export type Database = {
         Insert: {
           default_attribution_text?: string | null
           default_attribution_url?: string | null
+          default_background_color?: string | null
+          default_button_text_color?: string | null
           default_chat_agent_id?: string | null
+          default_secondary_color?: string | null
+          default_text_color?: string | null
           default_voice_agent_id?: string | null
+          disable_public_signup?: boolean | null
           id?: string
+          min_password_length?: number | null
+          require_number?: boolean | null
+          require_special_char?: boolean | null
+          require_uppercase?: boolean | null
           retell_api_key?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -92,9 +122,18 @@ export type Database = {
         Update: {
           default_attribution_text?: string | null
           default_attribution_url?: string | null
+          default_background_color?: string | null
+          default_button_text_color?: string | null
           default_chat_agent_id?: string | null
+          default_secondary_color?: string | null
+          default_text_color?: string | null
           default_voice_agent_id?: string | null
+          disable_public_signup?: boolean | null
           id?: string
+          min_password_length?: number | null
+          require_number?: boolean | null
+          require_special_char?: boolean | null
+          require_uppercase?: boolean | null
           retell_api_key?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -285,6 +324,8 @@ export type Database = {
           api_key: string
           attribution_link: string | null
           attribution_text: string | null
+          background_color: string | null
+          button_text_color: string | null
           chat_agent_id: string | null
           chat_type: string | null
           created_at: string
@@ -296,6 +337,8 @@ export type Database = {
           position: string | null
           primary_color: string | null
           retell_api_key: string | null
+          secondary_color: string | null
+          text_color: string | null
           title: string | null
           updated_at: string
           user_id: string | null
@@ -307,6 +350,8 @@ export type Database = {
           api_key: string
           attribution_link?: string | null
           attribution_text?: string | null
+          background_color?: string | null
+          button_text_color?: string | null
           chat_agent_id?: string | null
           chat_type?: string | null
           created_at?: string
@@ -318,6 +363,8 @@ export type Database = {
           position?: string | null
           primary_color?: string | null
           retell_api_key?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string | null
@@ -329,6 +376,8 @@ export type Database = {
           api_key?: string
           attribution_link?: string | null
           attribution_text?: string | null
+          background_color?: string | null
+          button_text_color?: string | null
           chat_agent_id?: string | null
           chat_type?: string | null
           created_at?: string
@@ -340,6 +389,8 @@ export type Database = {
           position?: string | null
           primary_color?: string | null
           retell_api_key?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string | null
@@ -359,10 +410,14 @@ export type Database = {
         Returns: {
           demo_attribution_text: string
           demo_attribution_url: string
+          demo_background_color: string
+          demo_button_text_color: string
           demo_enable_chat: boolean
           demo_enable_voice: boolean
           demo_greeting: string
           demo_primary_color: string
+          demo_secondary_color: string
+          demo_text_color: string
           demo_title: string
         }[]
       }
@@ -371,12 +426,16 @@ export type Database = {
         Returns: {
           widget_attribution_link: string
           widget_attribution_text: string
+          widget_background_color: string
+          widget_button_text_color: string
           widget_chat_type: string
           widget_enable_chat: boolean
           widget_enable_voice: boolean
           widget_greeting: string
           widget_position: string
           widget_primary_color: string
+          widget_secondary_color: string
+          widget_text_color: string
           widget_title: string
         }[]
       }
