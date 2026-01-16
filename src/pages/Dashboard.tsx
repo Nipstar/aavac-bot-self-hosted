@@ -95,7 +95,7 @@ export default function Dashboard() {
     setLoadingWidgets(false);
   };
 
-  const canCreateWidget = widgets.length < 100;
+  const canCreateWidget = widgets.length < 10000;
 
   const createWidget = async () => {
     if (!newWidgetName.trim()) {
@@ -215,7 +215,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold">Your Widgets</h1>
             <p className="text-muted-foreground">
-              {widgets.length}/100 widgets used
+              {widgets.length.toLocaleString()} widgets
             </p>
           </div>
 
