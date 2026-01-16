@@ -17,28 +17,37 @@ serve(async (req) => {
     const apiKey = url.searchParams.get('api_key');
 
     if (!apiKey) {
-      console.error('Missing api_key parameter');
       return new Response(
         JSON.stringify({ error: 'api_key parameter is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Validate API key format (wgt_ prefix + 48 hex chars)
+    if (!/^wgt_[a-f0-9]{48}$/.test(apiKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid API key format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    // Use service role key to bypass RLS (public policy was removed for security)
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('Fetching widget config for api_key:', apiKey.substring(0, 10) + '...');
 
+    // Only select the columns we need to return (no sensitive data)
     const { data, error } = await supabase
       .from('widget_configs')
-      .select('*')
+      .select('id, title, greeting, primary_color, position, enable_voice, enable_chat, attribution_link, attribution_text, chat_type, allowed_domains')
       .eq('api_key', apiKey)
       .single();
 
     if (error || !data) {
-      console.error('Widget config not found:', error);
+      console.error('Widget config not found');
       return new Response(
         JSON.stringify({ error: 'Widget configuration not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -52,7 +61,7 @@ serve(async (req) => {
         origin.includes(domain)
       );
       if (!isAllowed && origin) {
-        console.warn('Domain not allowed:', origin);
+        console.warn('Domain not allowed');
         return new Response(
           JSON.stringify({ error: 'Domain not allowed' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,9 +69,9 @@ serve(async (req) => {
       }
     }
 
-    console.log('Returning widget config:', data.name);
+    console.log('Returning widget config');
 
-    // Return public config (exclude sensitive fields)
+    // Return public config (exclude allowed_domains from response)
     const publicConfig = {
       id: data.id,
       title: data.title,
@@ -71,6 +80,9 @@ serve(async (req) => {
       position: data.position,
       enable_voice: data.enable_voice,
       enable_chat: data.enable_chat,
+      attribution_link: data.attribution_link,
+      attribution_text: data.attribution_text,
+      chat_type: data.chat_type,
     };
 
     return new Response(
@@ -80,7 +92,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in widget-config function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Service temporarily unavailable' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

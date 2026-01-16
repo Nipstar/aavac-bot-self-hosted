@@ -354,6 +354,32 @@ export type Database = {
     }
     Functions: {
       generate_widget_api_key: { Args: never; Returns: string }
+      get_demo_display_settings: {
+        Args: never
+        Returns: {
+          demo_attribution_text: string
+          demo_attribution_url: string
+          demo_enable_chat: boolean
+          demo_enable_voice: boolean
+          demo_greeting: string
+          demo_primary_color: string
+          demo_title: string
+        }[]
+      }
+      get_widget_display_config: {
+        Args: { widget_api_key: string }
+        Returns: {
+          widget_attribution_link: string
+          widget_attribution_text: string
+          widget_chat_type: string
+          widget_enable_chat: boolean
+          widget_enable_voice: boolean
+          widget_greeting: string
+          widget_position: string
+          widget_primary_color: string
+          widget_title: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

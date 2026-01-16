@@ -23,14 +23,20 @@ const Home = () => {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase
-        .from("demo_settings")
-        .select("title, greeting, enable_voice, enable_chat, primary_color, attribution_text, attribution_url")
-        .limit(1)
-        .maybeSingle();
+      // Use secure RPC function that doesn't expose sensitive fields
+      const { data } = await supabase.rpc("get_demo_display_settings");
 
-      if (data) {
-        setSettings(data);
+      if (data && data.length > 0) {
+        const row = data[0];
+        setSettings({
+          title: row.demo_title,
+          greeting: row.demo_greeting,
+          enable_voice: row.demo_enable_voice,
+          enable_chat: row.demo_enable_chat,
+          primary_color: row.demo_primary_color,
+          attribution_text: row.demo_attribution_text,
+          attribution_url: row.demo_attribution_url,
+        });
       }
       setLoading(false);
     };

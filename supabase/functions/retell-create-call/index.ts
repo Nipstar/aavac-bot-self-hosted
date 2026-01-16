@@ -7,17 +7,31 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
+
+    // Input validation
+    if (body.api_key && typeof body.api_key !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (body.is_demo !== undefined && typeof body.is_demo !== 'boolean') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     let retellApiKey = Deno.env.get('RETELL_API_KEY');
     let retellAgentId = Deno.env.get('RETELL_AGENT_ID');
 
-    // Check if api_key is provided to fetch widget-specific config
-    const body = await req.json().catch(() => ({}));
     const widgetApiKey = body.api_key;
     const isDemo = body.is_demo === true;
 
@@ -25,8 +39,24 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Try global settings first as fallback
+    const { data: globalSettings } = await supabase
+      .from('global_settings')
+      .select('retell_api_key, default_voice_agent_id')
+      .limit(1)
+      .maybeSingle();
+
+    if (globalSettings) {
+      if (globalSettings.retell_api_key) {
+        retellApiKey = globalSettings.retell_api_key;
+      }
+      if (globalSettings.default_voice_agent_id) {
+        retellAgentId = globalSettings.default_voice_agent_id;
+      }
+    }
+
     if (widgetApiKey) {
-      console.log('Fetching widget config for api_key:', widgetApiKey.substring(0, 10) + '...');
+      console.log('Fetching widget config');
 
       const { data: widget, error } = await supabase
         .from('widget_configs')
@@ -35,21 +65,17 @@ serve(async (req) => {
         .single();
 
       if (error) {
-        console.error('Error fetching widget config:', error);
+        console.error('Error fetching widget config');
       } else if (widget) {
-        // Use widget-specific keys if available
         if (widget.retell_api_key) {
           retellApiKey = widget.retell_api_key;
-          console.log('Using widget-specific Retell API key');
         }
         if (widget.voice_agent_id) {
           retellAgentId = widget.voice_agent_id;
-          console.log('Using widget-specific voice agent ID:', retellAgentId);
         }
       }
     } else if (isDemo) {
-      // For demo widget, check demo_settings table
-      console.log('Fetching demo settings...');
+      console.log('Fetching demo settings');
       const { data: demoSettings, error } = await supabase
         .from('demo_settings')
         .select('retell_api_key, voice_agent_id')
@@ -57,30 +83,34 @@ serve(async (req) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching demo settings:', error);
+        console.error('Error fetching demo settings');
       } else if (demoSettings) {
         if (demoSettings.retell_api_key) {
           retellApiKey = demoSettings.retell_api_key;
-          console.log('Using demo-specific Retell API key');
         }
         if (demoSettings.voice_agent_id) {
           retellAgentId = demoSettings.voice_agent_id;
-          console.log('Using demo-specific voice agent ID:', retellAgentId);
         }
       }
     }
 
     if (!retellApiKey) {
-      console.error('RETELL_API_KEY is not configured');
-      throw new Error('RETELL_API_KEY is not configured');
+      console.error('Retell API key not configured');
+      return new Response(
+        JSON.stringify({ error: 'Voice service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!retellAgentId) {
-      console.error('RETELL_AGENT_ID is not configured');
-      throw new Error('RETELL_AGENT_ID is not configured');
+      console.error('Retell agent ID not configured');
+      return new Response(
+        JSON.stringify({ error: 'Voice service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('Creating web call with agent:', retellAgentId);
+    console.log('Creating web call');
 
     const response = await fetch("https://api.retellai.com/v2/create-web-call", {
       method: "POST",
@@ -96,7 +126,10 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Retell API error:', response.status, errorText);
-      throw new Error(`Failed to create call: ${response.status} ${errorText}`);
+      return new Response(
+        JSON.stringify({ error: 'Unable to start voice call. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
@@ -107,10 +140,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in retell-create-call function:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Service temporarily unavailable' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
