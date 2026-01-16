@@ -52,6 +52,10 @@ export default function WidgetSettings() {
   const [enableVoice, setEnableVoice] = useState(true);
   const [enableChat, setEnableChat] = useState(true);
   const [primaryColor, setPrimaryColor] = useState("#14b8a6");
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [textColor, setTextColor] = useState("#1f2937");
+  const [secondaryColor, setSecondaryColor] = useState("#f3f4f6");
+  const [buttonTextColor, setButtonTextColor] = useState("#ffffff");
   const [position, setPosition] = useState("bottom-right");
   const [voiceAgentId, setVoiceAgentId] = useState("");
   const [chatAgentId, setChatAgentId] = useState("");
@@ -94,6 +98,10 @@ export default function WidgetSettings() {
     setEnableVoice(data.enable_voice ?? true);
     setEnableChat(data.enable_chat ?? true);
     setPrimaryColor(data.primary_color || "#14b8a6");
+    setBackgroundColor(data.background_color || "#ffffff");
+    setTextColor(data.text_color || "#1f2937");
+    setSecondaryColor(data.secondary_color || "#f3f4f6");
+    setButtonTextColor(data.button_text_color || "#ffffff");
     setPosition(data.position || "bottom-right");
     setVoiceAgentId(data.voice_agent_id || "");
     setChatAgentId(data.chat_agent_id || "");
@@ -120,6 +128,10 @@ export default function WidgetSettings() {
         enable_voice: enableVoice,
         enable_chat: enableChat,
         primary_color: primaryColor,
+        background_color: backgroundColor,
+        text_color: textColor,
+        secondary_color: secondaryColor,
+        button_text_color: buttonTextColor,
         position,
         voice_agent_id: voiceAgentId || null,
         chat_agent_id: chatAgentId || null,
@@ -258,36 +270,113 @@ export default function WidgetSettings() {
           {/* Appearance */}
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Appearance</h2>
+            <p className="text-sm text-muted-foreground">
+              Customize the widget to match your website's design.
+            </p>
 
-            <div className="space-y-2">
-              <Label htmlFor="color">Primary Color</Label>
-              <div className="flex gap-3">
-                <Input
-                  id="color"
-                  type="color"
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-16 h-10 p-1 cursor-pointer"
-                />
-                <Input
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="flex-1"
-                />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Primary Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Buttons & accents</p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="position">Widget Position</Label>
-              <Select value={position} onValueChange={setPosition}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                  <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label>Button Text Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Text on buttons</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Background Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Widget background</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Text Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Main text</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Secondary Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Input fields & AI bubbles</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Widget Position</Label>
+                <Select value={position} onValueChange={setPosition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </section>
 
