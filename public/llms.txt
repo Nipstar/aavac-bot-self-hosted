@@ -1,0 +1,39 @@
+# Antek Automation - AI Widget Platform
+
+## About
+Antek Automation is an AI automation agency based in the United Kingdom, providing AI chatbots, voice AI phone agents, and workflow automation solutions.
+
+## Services
+- AI Chatbots: Intelligent conversational agents for websites and applications
+- Voice AI Phone Agents: Automated voice assistants for handling phone calls
+- Workflow Automation: Streamlined business processes through AI-powered automation
+- Lead Capture: 24/7 automated lead collection and qualification
+- Appointment Booking: AI-assisted scheduling and booking systems
+- Customer Support: Round-the-clock AI customer service solutions
+
+## Contact Information
+- Website: https://www.antekautomation.com/
+- Email: hello@antekautomation.com
+- Phone: +44-3330-389960
+
+## Address
+Chantry House, 38 Chantry Way
+Andover, Hampshire
+SP10 1LZ
+United Kingdom
+
+## Service Area
+United Kingdom
+
+## Technology
+This platform demonstrates AI-powered voice and chat widgets that can be embedded on any website to provide intelligent customer interactions.
+
+## Usage
+The AI widget supports:
+- Text-based chat conversations
+- Voice-based natural language interactions
+- Customizable branding and appearance
+- Easy website integration via embed code
+
+## Legal
+For terms of service and privacy policy, please visit https://www.antekautomation.com/
