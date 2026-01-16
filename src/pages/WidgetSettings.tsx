@@ -32,6 +32,9 @@ interface WidgetConfig {
   allowed_domains: string[] | null;
   retell_api_key: string | null;
   attribution_link: string | null;
+  attribution_text: string | null;
+  chat_type: string | null;
+  webhook_url: string | null;
 }
 
 export default function WidgetSettings() {
@@ -54,7 +57,10 @@ export default function WidgetSettings() {
   const [chatAgentId, setChatAgentId] = useState("");
   const [retellApiKey, setRetellApiKey] = useState("");
   const [allowedDomains, setAllowedDomains] = useState("");
-  const [attributionLink, setAttributionLink] = useState("https://aavacbot.com");
+  const [attributionLink, setAttributionLink] = useState("https://www.antekautomation.com");
+  const [attributionText, setAttributionText] = useState("Powered By Antek Automation");
+  const [chatType, setChatType] = useState("retell");
+  const [webhookUrl, setWebhookUrl] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -93,7 +99,10 @@ export default function WidgetSettings() {
     setChatAgentId(data.chat_agent_id || "");
     setRetellApiKey(data.retell_api_key || "");
     setAllowedDomains((data.allowed_domains || []).join("\n"));
-    setAttributionLink(data.attribution_link || "https://aavacbot.com");
+    setAttributionLink(data.attribution_link || "https://www.antekautomation.com");
+    setAttributionText(data.attribution_text || "Powered By Antek Automation");
+    setChatType(data.chat_type || "retell");
+    setWebhookUrl(data.webhook_url || "");
     setLoadingWidget(false);
   };
 
@@ -120,6 +129,9 @@ export default function WidgetSettings() {
           .map((d) => d.trim())
           .filter(Boolean),
         attribution_link: attributionLink || null,
+        attribution_text: attributionText || null,
+        chat_type: chatType,
+        webhook_url: webhookUrl || null,
       })
       .eq("id", widget.id);
 
@@ -283,8 +295,18 @@ export default function WidgetSettings() {
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Attribution Link</h2>
             <p className="text-sm text-muted-foreground">
-              A small "Powered by" link appears at the bottom of the widget. Customize the URL or leave empty to remove.
+              A small "Powered by" link appears at the bottom of the widget.
             </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="attributionText">Attribution Text</Label>
+              <Input
+                id="attributionText"
+                value={attributionText}
+                onChange={(e) => setAttributionText(e.target.value)}
+                placeholder="Powered By Antek Automation"
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="attributionLink">Attribution URL</Label>
@@ -292,29 +314,75 @@ export default function WidgetSettings() {
                 id="attributionLink"
                 value={attributionLink}
                 onChange={(e) => setAttributionLink(e.target.value)}
-                placeholder="https://yourwebsite.com"
+                placeholder="https://www.antekautomation.com"
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty to hide the attribution link entirely
+                Leave both empty to hide the attribution link entirely
               </p>
             </div>
+          </section>
+
+          {/* Chat Configuration */}
+          <section className="glass rounded-xl p-6 space-y-6">
+            <h2 className="text-lg font-semibold">Chat Configuration</h2>
+
+            <div className="space-y-2">
+              <Label>Chat Type</Label>
+              <Select value={chatType} onValueChange={setChatType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retell">Retell AI</SelectItem>
+                  <SelectItem value="webhook">Webhook (n8n, Make, etc.)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choose between Retell AI for chat or a custom webhook for integrations like n8n
+              </p>
+            </div>
+
+            {chatType === "webhook" ? (
+              <div className="space-y-2">
+                <Label htmlFor="webhookUrl">Webhook URL</Label>
+                <Input
+                  id="webhookUrl"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://your-n8n-instance.com/webhook/..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  The webhook should accept POST with {`{ message: string, chat_id?: string }`} and return {`{ response: string }`}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="chatAgent">Chat Agent ID</Label>
+                <Input
+                  id="chatAgent"
+                  value={chatAgentId}
+                  onChange={(e) => setChatAgentId(e.target.value)}
+                  placeholder="agent_xxxxx (uses global default if empty)"
+                />
+              </div>
+            )}
           </section>
 
           {/* Retell Configuration */}
           <section className="glass rounded-xl p-6 space-y-6">
             <h2 className="text-lg font-semibold">Retell AI Configuration</h2>
             <p className="text-sm text-muted-foreground">
-              Enter your Retell API key and agent IDs to connect voice and chat
+              Override the global Retell settings for this widget. Leave empty to use global defaults.
             </p>
 
             <div className="space-y-2">
-              <Label htmlFor="retellApiKey">Retell API Key</Label>
+              <Label htmlFor="retellApiKey">Retell API Key (optional)</Label>
               <Input
                 id="retellApiKey"
                 type="password"
                 value={retellApiKey}
                 onChange={(e) => setRetellApiKey(e.target.value)}
-                placeholder="key_xxxxx"
+                placeholder="Uses global key if empty"
               />
               <p className="text-xs text-muted-foreground">
                 Get your API key from{" "}
@@ -336,17 +404,7 @@ export default function WidgetSettings() {
                 id="voiceAgent"
                 value={voiceAgentId}
                 onChange={(e) => setVoiceAgentId(e.target.value)}
-                placeholder="agent_xxxxx"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="chatAgent">Chat Agent ID</Label>
-              <Input
-                id="chatAgent"
-                value={chatAgentId}
-                onChange={(e) => setChatAgentId(e.target.value)}
-                placeholder="agent_xxxxx"
+                placeholder="agent_xxxxx (uses global default if empty)"
               />
             </div>
           </section>

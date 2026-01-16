@@ -32,6 +32,11 @@ export interface WidgetConfig {
   enableVoice?: boolean;
   enableChat?: boolean;
   isDemo?: boolean;
+  apiKey?: string;
+  chatType?: "retell" | "webhook";
+  webhookUrl?: string;
+  attributionText?: string;
+  attributionUrl?: string;
 }
 
 interface FloatingVoiceWidgetProps {
@@ -59,6 +64,11 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
     enableVoice = true,
     enableChat = true,
     isDemo = false,
+    apiKey,
+    chatType = "retell",
+    webhookUrl,
+    attributionText = "Powered By Antek Automation",
+    attributionUrl = "https://www.antekautomation.com",
   } = config || {};
 
   // Add greeting message on first open
@@ -130,7 +140,7 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
 
   const createVoiceWebCall = async () => {
     const { data, error } = await supabase.functions.invoke("retell-create-call", {
-      body: { is_demo: isDemo },
+      body: { is_demo: isDemo, api_key: apiKey },
     });
 
     if (error) {
@@ -146,8 +156,24 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
   };
 
   const sendTextMessage = async (message: string): Promise<{ response: string; chat_id?: string }> => {
+    // If using webhook, call the webhook directly
+    if (chatType === "webhook" && webhookUrl) {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, chat_id: chatId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Webhook request failed");
+      }
+
+      return await response.json();
+    }
+
+    // Otherwise use Retell via edge function
     const { data, error } = await supabase.functions.invoke("retell-text-chat", {
-      body: { message, chat_id: chatId, is_demo: isDemo },
+      body: { message, chat_id: chatId, is_demo: isDemo, api_key: apiKey },
     });
 
     if (error) {
@@ -440,6 +466,20 @@ const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
               </div>
             </div>
           ) : null}
+
+          {/* Attribution Link */}
+          {attributionText && attributionUrl && (
+            <div className="px-4 py-2 border-t border-border text-center">
+              <a
+                href={attributionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                {attributionText}
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

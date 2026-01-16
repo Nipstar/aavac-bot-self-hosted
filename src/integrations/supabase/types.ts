@@ -16,7 +16,10 @@ export type Database = {
     Tables: {
       demo_settings: {
         Row: {
+          attribution_text: string | null
+          attribution_url: string | null
           chat_agent_id: string | null
+          chat_type: string | null
           enable_chat: boolean | null
           enable_voice: boolean | null
           greeting: string | null
@@ -27,9 +30,13 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           voice_agent_id: string | null
+          webhook_url: string | null
         }
         Insert: {
+          attribution_text?: string | null
+          attribution_url?: string | null
           chat_agent_id?: string | null
+          chat_type?: string | null
           enable_chat?: boolean | null
           enable_voice?: boolean | null
           greeting?: string | null
@@ -40,9 +47,13 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           voice_agent_id?: string | null
+          webhook_url?: string | null
         }
         Update: {
+          attribution_text?: string | null
+          attribution_url?: string | null
           chat_agent_id?: string | null
+          chat_type?: string | null
           enable_chat?: boolean | null
           enable_voice?: boolean | null
           greeting?: string | null
@@ -53,6 +64,40 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           voice_agent_id?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      global_settings: {
+        Row: {
+          default_attribution_text: string | null
+          default_attribution_url: string | null
+          default_chat_agent_id: string | null
+          default_voice_agent_id: string | null
+          id: string
+          retell_api_key: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_attribution_text?: string | null
+          default_attribution_url?: string | null
+          default_chat_agent_id?: string | null
+          default_voice_agent_id?: string | null
+          id?: string
+          retell_api_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_attribution_text?: string | null
+          default_attribution_url?: string | null
+          default_chat_agent_id?: string | null
+          default_voice_agent_id?: string | null
+          id?: string
+          retell_api_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -239,7 +284,9 @@ export type Database = {
           allowed_domains: string[] | null
           api_key: string
           attribution_link: string | null
+          attribution_text: string | null
           chat_agent_id: string | null
+          chat_type: string | null
           created_at: string
           enable_chat: boolean | null
           enable_voice: boolean | null
@@ -253,12 +300,15 @@ export type Database = {
           updated_at: string
           user_id: string | null
           voice_agent_id: string | null
+          webhook_url: string | null
         }
         Insert: {
           allowed_domains?: string[] | null
           api_key: string
           attribution_link?: string | null
+          attribution_text?: string | null
           chat_agent_id?: string | null
+          chat_type?: string | null
           created_at?: string
           enable_chat?: boolean | null
           enable_voice?: boolean | null
@@ -272,12 +322,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           voice_agent_id?: string | null
+          webhook_url?: string | null
         }
         Update: {
           allowed_domains?: string[] | null
           api_key?: string
           attribution_link?: string | null
+          attribution_text?: string | null
           chat_agent_id?: string | null
+          chat_type?: string | null
           created_at?: string
           enable_chat?: boolean | null
           enable_voice?: boolean | null
@@ -291,6 +344,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           voice_agent_id?: string | null
+          webhook_url?: string | null
         }
         Relationships: []
       }
