@@ -259,30 +259,10 @@ serve(async (req) => {
       @keyframes retell-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes retell-bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
       @keyframes retell-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(20, 184, 166, 0); } }
-      #retell-diag-panel { position: fixed; bottom: 90px; right: 90px; width: 320px; background: #1e1e2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; z-index: 9999999; box-shadow: 0 10px 40px rgba(0,0,0,0.4); display: none; }
-      #retell-diag-btn { position: fixed; bottom: 90px; right: 24px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer; z-index: 9999998; display: flex; align-items: center; justify-content: center; }
-      #retell-diag-btn:hover { background: rgba(255,255,255,0.2); color: white; }
     \`;
     document.head.appendChild(style);
     
-    // Create diagnostics button and panel
-    var diagBtn = document.createElement("button");
-    diagBtn.id = "retell-diag-btn";
-    diagBtn.innerHTML = "⚙";
-    diagBtn.title = "Widget Diagnostics";
-    diagBtn.onclick = function() {
-      var panel = document.getElementById("retell-diag-panel");
-      if (panel) {
-        panel.style.display = panel.style.display === "none" ? "block" : "none";
-        updateDiagnosticsPanel();
-      }
-    };
-    document.body.appendChild(diagBtn);
-    
-    var diagPanel = document.createElement("div");
-    diagPanel.id = "retell-diag-panel";
-    document.body.appendChild(diagPanel);
-    updateDiagnosticsPanel();
+    // Diagnostics disabled for production
 
     // Create container
     var container = document.createElement("div");
