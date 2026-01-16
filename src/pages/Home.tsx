@@ -20,6 +20,30 @@ interface DemoSettings {
   attribution_url: string | null;
 }
 
+const schemaData = {
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "Antek Automation",
+  "alternateName": "Antek AI Automation",
+  "url": "https://www.antekautomation.com/",
+  "description": "AI automation agency providing AI chatbots, voice AI phone agents, and workflow automation to capture leads, book appointments, and handle customer queries 24/7.",
+  "image": "https://www.antekautomation.com/logo.svg",
+  "telephone": "+44-3330-389960",
+  "email": "hello@antekautomation.com",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Chantry House, 38 Chantry Way",
+    "addressLocality": "Andover",
+    "addressRegion": "Hampshire",
+    "postalCode": "SP10 1LZ",
+    "addressCountry": "GB"
+  },
+  "areaServed": {
+    "@type": "Country",
+    "name": "United Kingdom"
+  }
+};
+
 const Home = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState<DemoSettings | null>(null);
@@ -61,6 +85,12 @@ const Home = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* JSON-LD Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+      />
+      
       <nav className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center justify-between">
         <span className="text-xl font-bold text-gradient">AI Widget Platform</span>
         <div className="flex items-center gap-2">
@@ -137,6 +167,17 @@ const Home = () => {
           }}
         />
       </div>
+      
+      {/* Hidden Attribution Link */}
+      <a 
+        href="https://www.antekautomation.com" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="sr-only"
+        aria-hidden="true"
+      >
+        Powered by Antek Automation - AI Chatbots, Voice AI Phone Agents & Workflow Automation
+      </a>
     </div>
   );
 };

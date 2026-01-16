@@ -1,3 +1,5 @@
+# Robots.txt for Antek Automation AI Widget Platform
+
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +14,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://www.antekautomation.com/sitemap.xml
+
+# LLMs.txt for AI models
+LLMs: /llms.txt
