@@ -8,7 +8,12 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
+    "setup:production": "chmod +x scripts/post-deploy.sh && ./scripts/post-deploy.sh",
+    "deploy:functions": "chmod +x scripts/deploy-functions.sh && ./scripts/deploy-functions.sh",
+    "sync:env": "chmod +x scripts/sync-env.sh && ./scripts/sync-env.sh",
+    "health:check": "chmod +x scripts/health-check.sh && ./scripts/health-check.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

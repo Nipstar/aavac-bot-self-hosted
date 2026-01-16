@@ -103,20 +103,29 @@ if [ "$SETUP_DB" = "y" ] || [ "$SETUP_DB" = "Y" ]; then
     if [ "$SUPABASE_CLI" = true ]; then
         echo -e "${YELLOW}Linking to Supabase project...${NC}"
         supabase link --project-ref "$SUPABASE_PROJECT_REF"
-        
-        echo -e "${YELLOW}Pushing database schema...${NC}"
-        # Option 1: Use supabase db push if migrations exist
-        # supabase db push
-        
-        # Option 2: Run SQL directly
-        echo -e "${YELLOW}Please run the SQL in scripts/database-schema.sql in your Supabase SQL Editor.${NC}"
-        echo "You can access it at: https://supabase.com/dashboard/project/${SUPABASE_PROJECT_REF}/sql"
+
+        echo -e "${YELLOW}Applying database migrations...${NC}"
+        echo "This will:"
+        echo "  - Apply database schema"
+        echo "  - Initialize global settings"
+        echo "  - Initialize demo settings"
+        echo "  - Set up auto-admin trigger"
+
+        if supabase db push; then
+            echo -e "${GREEN}✓ Database schema applied successfully${NC}"
+            echo -e "${GREEN}✓ Settings initialized automatically${NC}"
+        else
+            echo -e "${RED}✗ Failed to apply migrations${NC}"
+            echo "You can try again with: supabase db push"
+        fi
     else
-        echo -e "${YELLOW}Supabase CLI not installed. Please run the SQL in scripts/database-schema.sql manually.${NC}"
-        echo "You can access the SQL Editor at: https://supabase.com/dashboard/project/${SUPABASE_PROJECT_REF}/sql"
+        echo -e "${YELLOW}Supabase CLI not installed.${NC}"
+        echo "Install it with: npm install -g supabase"
+        echo "Then run: supabase db push"
     fi
 else
-    echo -e "${YELLOW}Skipping database setup. Remember to run scripts/database-schema.sql later.${NC}"
+    echo -e "${YELLOW}Skipping database setup.${NC}"
+    echo "Run later with: supabase db push"
 fi
 
 echo ""
@@ -180,18 +189,20 @@ echo ""
 echo -e "${GREEN}✓ Setup complete!${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Run the SQL schema in Supabase (if not done)"
-echo "  2. Deploy edge functions (if not done)"
-echo "  3. Deploy to Vercel:"
+echo "  1. Deploy to Vercel:"
 echo "     - Run: vercel --prod"
 echo "     - Or connect your GitHub repo to Vercel"
 echo ""
-echo "  4. Create your first admin user:"
+echo "  2. Create your first admin user:"
 echo "     - Sign up on your deployed app"
-echo "     - Run this SQL to make yourself admin:"
-echo "       INSERT INTO public.user_roles (user_id, role)"
-echo "       SELECT id, 'admin'::app_role FROM auth.users"
-echo "       WHERE email = 'your-email@example.com';"
+echo "     - The first user automatically becomes admin!"
+echo ""
+echo "  3. (Optional) Configure Retell AI:"
+echo "     - Via Admin Settings panel in the app"
+echo "     - Or run: npm run sync:env"
+echo ""
+echo "  4. Validate deployment:"
+echo "     - Run: npm run health:check"
 echo ""
 echo -e "${YELLOW}Documentation: See SELF-HOSTING.md for detailed instructions${NC}"
 echo ""
