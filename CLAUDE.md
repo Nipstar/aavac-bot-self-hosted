@@ -165,6 +165,13 @@ RETELL_AGENT_ID=voice_agent_id
 RETELL_TEXT_AGENT_ID=chat_agent_id
 ```
 
+Auto-configured by Supabase (available in all edge functions):
+```
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+```
+
 ## Common Patterns
 
 ### Adding a New Page
@@ -186,9 +193,11 @@ RETELL_TEXT_AGENT_ID=chat_agent_id
 
 ### Adding an Edge Function
 1. Create in `supabase/functions/<function-name>/index.ts`
-2. Deploy with `supabase functions deploy <function-name> --no-verify-jwt`
-3. Set any required secrets with `supabase secrets set`
-4. Add CORS headers for browser requests
+2. Import Deno server and Supabase client at top of file
+3. Add CORS headers for browser requests (see `widget-config/index.ts` for example)
+4. Deploy with `supabase functions deploy <function-name> --no-verify-jwt`
+5. Set any required secrets with `supabase secrets set SECRET_NAME=value`
+6. Test locally with `supabase functions serve <function-name>`
 
 ### Using Supabase Client
 ```typescript
@@ -234,8 +243,10 @@ useEffect(() => {
 - **Row Level Security**: All database operations go through RLS policies - test with different user roles
 - **Edge Function CORS**: All edge functions must include CORS headers for browser access. Deploy functions with `--no-verify-jwt` flag
 - **Widget Embedding**: Widgets are embedded via iframe with configuration passed via query params (`?api_key=xxx` or `?is_demo=true`)
+- **Widget API Keys**: Generated API keys follow the format `wgt_` + 48 hex characters. This format is validated in edge functions
 - **Development Port**: Dev server runs on port 8080 (not the default 5173) - configured in vite.config.ts
 - **Setup Scripts**: Use `npm run setup` for interactive first-time setup, or `npm run setup:production` after Vercel deployment
+- **Service Role Key**: Edge functions can access `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS when needed (e.g., in `widget-config` function)
 
 ## Deployment Checklist
 
