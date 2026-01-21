@@ -109,14 +109,6 @@ export default function Auth() {
     }
   }, [user, loading, navigate, mode]);
 
-  // Redirect to sign-in if sign-ups are disabled and user tries to access sign-up page
-  useEffect(() => {
-    if (!loadingSettings && mode === "signup" && !canSignUp) {
-      setMode("signin");
-      toast.error("Registration is by invitation only. Please contact an administrator.");
-    }
-  }, [mode, canSignUp, loadingSettings]);
-
   const validatePassword = (pwd: string): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
@@ -513,13 +505,7 @@ export default function Auth() {
                 ) : canSignUp ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (canSignUp) {
-                        setMode("signup");
-                      } else {
-                        toast.error("Registration is by invitation only. Please contact an administrator.");
-                      }
-                    }}
+                    onClick={() => setMode("signup")}
                     className="text-primary hover:underline"
                   >
                     Don't have an account? Sign up
