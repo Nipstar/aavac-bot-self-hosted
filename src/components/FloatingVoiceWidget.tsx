@@ -49,7 +49,7 @@ interface FloatingVoiceWidgetProps {
 
 const FloatingVoiceWidget = ({ config }: FloatingVoiceWidgetProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<WidgetMode>("chat");
+  const [mode, setMode] = useState<WidgetMode>("voice");
   const [callState, setCallState] = useState<CallState>("idle");
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);

@@ -42,7 +42,7 @@ serve(async (req) => {
     // Only select the columns we need to return (no sensitive data)
     const { data, error } = await supabase
       .from('widget_configs')
-      .select('id, title, greeting, primary_color, position, enable_voice, enable_chat, attribution_link, attribution_text, chat_type, allowed_domains')
+      .select('id, title, greeting, primary_color, background_color, text_color, secondary_color, button_text_color, position, enable_voice, enable_chat, attribution_link, attribution_text, chat_type, allowed_domains')
       .eq('api_key', apiKey)
       .single();
 
@@ -77,6 +77,10 @@ serve(async (req) => {
       title: data.title,
       greeting: data.greeting,
       primary_color: data.primary_color,
+      background_color: data.background_color,
+      text_color: data.text_color,
+      secondary_color: data.secondary_color,
+      button_text_color: data.button_text_color,
       position: data.position,
       enable_voice: data.enable_voice,
       enable_chat: data.enable_chat,

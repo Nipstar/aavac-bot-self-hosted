@@ -196,7 +196,7 @@ serve(async (req) => {
   function initWidget(config) {
     var enableVoice = config.enable_voice !== false;
     var enableChat = config.enable_chat !== false;
-    var currentMode = enableChat ? "chat" : "voice";
+    var currentMode = enableVoice ? "voice" : "chat";
     var callState = "idle";
     var isAgentSpeaking = false;
     

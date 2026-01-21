@@ -31,6 +31,7 @@ interface GlobalSettings {
   default_chat_agent_id: string | null;
   default_attribution_text: string | null;
   default_attribution_url: string | null;
+  disable_public_signup: boolean | null;
 }
 
 interface DemoSettings {
@@ -64,6 +65,7 @@ export default function AdminSettings() {
   const [defaultChatAgentId, setDefaultChatAgentId] = useState("");
   const [defaultAttributionText, setDefaultAttributionText] = useState("Powered By Antek Automation");
   const [defaultAttributionUrl, setDefaultAttributionUrl] = useState("https://www.antekautomation.com");
+  const [disablePublicSignup, setDisablePublicSignup] = useState(false);
 
   // Demo settings form state
   const [title, setTitle] = useState("");
@@ -123,6 +125,7 @@ export default function AdminSettings() {
       setDefaultChatAgentId(globalData.default_chat_agent_id || "");
       setDefaultAttributionText(globalData.default_attribution_text || "Powered By Antek Automation");
       setDefaultAttributionUrl(globalData.default_attribution_url || "https://www.antekautomation.com");
+      setDisablePublicSignup(globalData.disable_public_signup ?? false);
     }
 
     // Fetch demo settings
@@ -164,6 +167,7 @@ export default function AdminSettings() {
         default_chat_agent_id: defaultChatAgentId || null,
         default_attribution_text: defaultAttributionText || null,
         default_attribution_url: defaultAttributionUrl || null,
+        disable_public_signup: disablePublicSignup,
         updated_at: new Date().toISOString(),
         updated_by: user?.id,
       })
@@ -341,6 +345,26 @@ export default function AdminSettings() {
                   value={defaultAttributionUrl}
                   onChange={(e) => setDefaultAttributionUrl(e.target.value)}
                   placeholder="https://www.antekautomation.com"
+                />
+              </div>
+            </section>
+
+            <section className="glass rounded-xl p-6 space-y-6">
+              <h2 className="text-lg font-semibold">Security Settings</h2>
+              <p className="text-sm text-muted-foreground">
+                Control access to the platform. First user is always allowed to sign up and becomes admin.
+              </p>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Disable Public Sign-ups</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, only invited users can create accounts
+                  </p>
+                </div>
+                <Switch
+                  checked={disablePublicSignup}
+                  onCheckedChange={setDisablePublicSignup}
                 />
               </div>
             </section>
