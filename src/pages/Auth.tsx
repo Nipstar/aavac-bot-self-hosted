@@ -109,6 +109,14 @@ export default function Auth() {
     }
   }, [user, loading, navigate, mode]);
 
+  // Redirect to sign-in if sign-ups are disabled and user tries to access sign-up page
+  useEffect(() => {
+    if (!loadingSettings && mode === "signup" && !canSignUp) {
+      setMode("signin");
+      toast.error("Registration is by invitation only. Please contact an administrator.");
+    }
+  }, [mode, canSignUp, loadingSettings]);
+
   const validatePassword = (pwd: string): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
@@ -196,12 +204,12 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please enter a valid email address");
       return;
     }
-    
+
     const validation = validatePassword(password);
     if (!validation.valid) {
       toast.error(`Password requirements not met: ${validation.errors.join(", ")}`);
@@ -212,6 +220,12 @@ export default function Auth() {
 
     try {
       if (mode === "signup") {
+        // Check if sign-ups are allowed
+        if (!canSignUp) {
+          toast.error("Registration is by invitation only. Please contact an administrator.");
+          setIsSubmitting(false);
+          return;
+        }
         const { error } = await signUp(email, password, fullName);
         if (error) {
           if (error.message.includes("already registered")) {
@@ -496,7 +510,13 @@ export default function Auth() {
                 ) : canSignUp ? (
                   <button
                     type="button"
-                    onClick={() => setMode("signup")}
+                    onClick={() => {
+                      if (canSignUp) {
+                        setMode("signup");
+                      } else {
+                        toast.error("Registration is by invitation only. Please contact an administrator.");
+                      }
+                    }}
                     className="text-primary hover:underline"
                   >
                     Don't have an account? Sign up
