@@ -1,17 +1,4 @@
 {
-  "_comment": "=============================================",
-  "_comment_2": "Vercel Deployment Configuration",
-  "_comment_3": "=============================================",
-  "_comment_4": "Required Environment Variables:",
-  "_comment_5": "Add these in Vercel Dashboard > Settings > Environment Variables:",
-  "_comment_6": "",
-  "_comment_7": "VITE_SUPABASE_URL - Your Supabase project URL (e.g., https://xxxxx.supabase.co)",
-  "_comment_8": "VITE_SUPABASE_PUBLISHABLE_KEY - Your Supabase anon/public key",
-  "_comment_9": "VITE_SUPABASE_PROJECT_ID - Your Supabase project reference (the xxxxx part)",
-  "_comment_10": "",
-  "_comment_11": "Get these values from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api",
-  "_comment_12": "=============================================",
-
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
